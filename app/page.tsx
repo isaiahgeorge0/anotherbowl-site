@@ -1,103 +1,105 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import Image from 'next/image';
+import Link from 'next/link';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import bowlLogo from '@/public/logo.png'; // placeholder logo
+import AboutSection from './components/AboutSection';
+import MenuSection from './components/MenuSection';
+import BlogSection from './components/BlogSection';
+
+export default function HomePage() {
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+
+  const toggleSection = (section: string) => {
+    setActiveSection(prev => (prev === section ? null : section));
+  };
+
+  const heroVariants = {
+    hidden: { opacity: 0, y: 50 } as const,
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.8, ease: 'easeOut' as const, staggerChildren: 0.3 },
+    },
+  };
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="min-h-screen scroll-smooth bg-light text-primary">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-white shadow-md">
+        <Link href="/">
+          <motion.div
+            whileHover={{ scale: 1.05, rotate: 1 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex items-center gap-2 cursor-pointer"
+          >
+            <Image src={bowlLogo} alt="Another Bowl Logo" width={40} height={40} />
+            <h1 className="text-xl font-extrabold tracking-widest uppercase">Another Bowl</h1>
+          </motion.div>
+        </Link>
+      </header>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      {/* Hero Section */}
+      <motion.section
+        className="flex flex-col gap-4 px-4 py-10 text-center sm:px-8 md:flex-row md:justify-center"
+        initial="hidden"
+        animate="visible"
+        variants={heroVariants}
+      >
+        {['healthy-food', 'bowl', 'juice'].map((query, i) => (
+          <motion.div
+            key={i}
+            className="overflow-hidden rounded-xl shadow-md"
+            variants={heroVariants}
           >
             <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+              src={`https://source.unsplash.com/featured/?${query}`}
+              alt={`Hero ${i + 1}`}
+              width={300}
+              height={200}
+              className="h-auto w-full object-cover transition-transform duration-300 hover:scale-105"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          </motion.div>
+        ))}
+      </motion.section>
+
+      {/* Description */}
+      <section className="max-w-xl px-4 pb-6 mx-auto text-center">
+        <p className="text-lg md:text-xl">
+          Fresh food. Clean energy. Weekly run club. Made in Ipswich.
+        </p>
+      </section>
+
+      {/* CTA Buttons */}
+      <section className="flex flex-col items-center justify-center gap-4 px-4 pb-12 sm:flex-row">
+        <button
+          onClick={() => toggleSection('about')}
+          className="rounded-md border border-primary px-6 py-2 font-medium transition-all duration-300 hover:bg-primary hover:text-white"
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          About Us
+        </button>
+        <button
+          onClick={() => toggleSection('menu')}
+          className="rounded-md border border-primary px-6 py-2 font-medium transition-all duration-300 hover:bg-primary hover:text-white"
         >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          Menu
+        </button>
+        <button
+          onClick={() => toggleSection('blog')}
+          className="rounded-md border border-primary px-6 py-2 font-medium transition-all duration-300 hover:bg-primary hover:text-white"
         >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          Blog
+        </button>
+      </section>
+
+      {/* Dropdown Content */}
+      <div className="px-6 pb-16">
+        {activeSection === 'about' && <AboutSection />}
+        {activeSection === 'menu' && <MenuSection />}
+        {activeSection === 'blog' && <BlogSection />}
+      </div>
     </div>
   );
 }
