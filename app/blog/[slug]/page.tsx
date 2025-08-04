@@ -1,6 +1,12 @@
 import { notFound } from 'next/navigation';
 import { blogPosts } from '../../data/blogPosts';
 
+export async function generateStaticParams() {
+  return blogPosts.map((post) => ({
+    slug: post.id,
+  }));
+}
+
 interface PageProps {
   params: {
     slug: string;
@@ -22,5 +28,3 @@ export default function BlogPost({ params }: PageProps) {
     </main>
   );
 }
-
-
