@@ -1,19 +1,18 @@
 import { notFound } from 'next/navigation';
-import { blogPosts } from '../../data/blogPosts';
+import { blogPosts } from '../../data/blogPosts'; // 3 dots because you're inside [slug] which is inside blog
 
-export async function generateStaticParams() {
-  return blogPosts.map((post) => ({
-    slug: post.id,
-  }));
-}
-
-// ✅ Add this line to fix build issues on platforms like Netlify
-export const dynamicParams = true;
-
+// ✅ Correct type expected by Next.js App Router
 interface PageProps {
   params: {
     slug: string;
   };
+}
+
+// ✅ Optional but good to include: SSG helper
+export async function generateStaticParams() {
+  return blogPosts.map((post) => ({
+    slug: post.id,
+  }));
 }
 
 export default function BlogPost({ params }: PageProps) {
@@ -25,9 +24,9 @@ export default function BlogPost({ params }: PageProps) {
     <main className="max-w-3xl mx-auto px-6 py-12">
       <h1 className="text-4xl font-bold text-primary mb-4">{post.title}</h1>
       <p className="text-gray-500 text-sm mb-6">{post.date}</p>
-      <article className="prose prose-lg text-gray-800">
+      <div className="prose prose-lg text-gray-800">
         <p>{post.content}</p>
-      </article>
+      </div>
     </main>
   );
 }
