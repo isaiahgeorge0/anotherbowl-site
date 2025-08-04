@@ -226,25 +226,25 @@ export default function HomePage() {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: index * 0.1 }}
-                whileHover={{ 
-                  scale: 1.05, 
-                  boxShadow: "0 20px 25px -5px rgba(255, 62, 134, 0.3), 0 10px 10px -5px rgba(255, 62, 134, 0.2)"
-                }}
+                                 whileHover={{ 
+                   scale: 1.05, 
+                   boxShadow: "0 25px 50px -12px rgba(255, 62, 134, 0.4), 0 10px 20px -5px rgba(255, 62, 134, 0.3)"
+                 }}
                 whileTap={{ scale: 0.95 }}
-                                 className={`relative overflow-hidden rounded-xl px-6 py-4 font-bold transition-all duration-300 text-sm sm:text-base ${
+                                 className={`relative overflow-hidden rounded-xl px-6 py-4 font-black transition-all duration-300 text-sm sm:text-base shadow-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 ${
                    activeSection === button.id 
-                     ? 'bg-primary text-white shadow-lg' 
-                     : 'bg-white/95 text-primary border-2 border-primary/20 hover:border-primary hover:bg-primary/5 backdrop-blur-sm'
+                     ? 'bg-primary text-white shadow-xl ring-2 ring-primary/30' 
+                     : 'bg-white/90 text-gray-800 border-2 border-primary/30 hover:border-primary hover:bg-primary/10 hover:text-primary backdrop-blur-sm hover:shadow-lg focus:border-primary focus:bg-primary/5'
                  }`}
               >
                 <span className="text-lg sm:text-xl mb-2 block">{button.icon}</span>
                 {button.label}
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent"
-                  initial={{ x: '-100%' }}
-                  whileHover={{ x: '100%' }}
-                  transition={{ duration: 0.6 }}
-                />
+                                 <motion.div
+                   className="absolute inset-0 bg-gradient-to-r from-primary/30 to-transparent"
+                   initial={{ x: '-100%' }}
+                   whileHover={{ x: '100%' }}
+                   transition={{ duration: 0.6 }}
+                 />
               </motion.button>
             ))}
           </div>
