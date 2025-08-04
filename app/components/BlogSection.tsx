@@ -1,6 +1,6 @@
 'use client';
 import { motion } from 'framer-motion';
-import { blogPosts } from '../data/blogPosts';
+import { blogPosts } from '@/data/blogPosts';
 
 
 export default function BlogSection() {

@@ -34,7 +34,7 @@ export default function HomePage() {
             whileTap={{ scale: 0.95 }}
             className="flex items-center gap-2 cursor-pointer"
           >
-            <Image src="/logo.png" alt="Another Bowl Logo" width={40} height={40} />
+            <Image src="/images/another-bowl-logo.jpeg" alt="Another Bowl Logo" width={40} height={40} />
             <h1 className="text-xl font-extrabold tracking-widest uppercase">Another Bowl</h1>
           </motion.div>
         </Link>
@@ -47,15 +47,19 @@ export default function HomePage() {
         animate="visible"
         variants={heroVariants}
       >
-        {['healthy-food', 'bowl', 'juice'].map((query, i) => (
+        {[
+          { src: '/images/another-bowl-1.jpeg', alt: 'Fresh healthy bowls' },
+          { src: '/images/another-bowl-2.jpeg', alt: 'Nutritious smoothies' },
+          { src: '/images/another-bowl-3.jpeg', alt: 'Fresh ingredients' }
+        ].map((image, i) => (
           <motion.div
             key={i}
             className="overflow-hidden rounded-xl shadow-md"
             variants={heroVariants}
           >
             <Image
-              src={`https://source.unsplash.com/featured/?${query}`}
-              alt={`Hero ${i + 1}`}
+              src={image.src}
+              alt={image.alt}
               width={300}
               height={200}
               className="h-auto w-full object-cover transition-transform duration-300 hover:scale-105"

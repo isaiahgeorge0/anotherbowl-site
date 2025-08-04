@@ -1,11 +1,11 @@
 import { notFound } from 'next/navigation';
-import { blogPosts } from '../../data/blogPosts'; // 3 dots because you're inside [slug] which is inside blog
+import { blogPosts } from '@/data/blogPosts';
 
 // ✅ Correct type expected by Next.js App Router
 interface PageProps {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 }
 
 // ✅ Optional but good to include: SSG helper
@@ -15,8 +15,9 @@ export async function generateStaticParams() {
   }));
 }
 
-export default function BlogPost({ params }: PageProps) {
-  const post = blogPosts.find((p) => p.id === params.slug);
+export default async function BlogPost({ params }: PageProps) {
+  const { slug } = await params;
+  const post = blogPosts.find((p) => p.id === slug);
 
   if (!post) return notFound();
 
