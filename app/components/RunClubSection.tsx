@@ -16,7 +16,7 @@ export default function RunClubSection() {
       transition={{ duration: 0.6, ease: "easeOut" }}
     >
       <motion.h2 
-        className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center"
+        className="text-2xl sm:text-3xl font-black mb-6 sm:mb-8 text-center text-gray-900"
         initial={{ opacity: 0, y: 20 }}
         animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
         transition={{ duration: 0.4, delay: 0.2 }}
@@ -50,17 +50,17 @@ export default function RunClubSection() {
           transition={{ duration: 0.5, delay: 0.4 }}
         >
           <div>
-            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">
-              Weekly Community Runs
-            </h3>
-            <p className="text-sm sm:text-base text-gray-600 leading-relaxed mb-4">
-              Every week, we gather for energizing runs through Ipswich. Whether you're a seasoned runner or just starting out, 
-              our inclusive community welcomes all paces and experience levels.
-            </p>
-            <p className="text-sm sm:text-base text-gray-600 leading-relaxed mb-6">
-              After each run, refuel with our signature bowls and smoothies while connecting with fellow runners. 
-              It's more than just running—it's building community through movement and healthy living.
-            </p>
+                            <h3 className="text-xl sm:text-2xl font-black text-gray-900 mb-3">
+                  Weekly Community Runs
+                </h3>
+                <p className="text-sm sm:text-base text-gray-700 font-medium leading-relaxed mb-4">
+                  Every week, we gather for energizing runs through Ipswich. Whether you're a seasoned runner or just starting out, 
+                  our inclusive community welcomes all paces and experience levels.
+                </p>
+                <p className="text-sm sm:text-base text-gray-700 font-medium leading-relaxed mb-6">
+                  After each run, refuel with our signature bowls and smoothies while connecting with fellow runners. 
+                  It's more than just running—it's building community through movement and healthy living.
+                </p>
           </div>
 
           {/* Features */}

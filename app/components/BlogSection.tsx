@@ -26,7 +26,7 @@ export default function BlogSection() {
       transition={{ duration: 0.6, ease: "easeOut" }}
     >
       <motion.h2 
-        className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center"
+        className="text-2xl sm:text-3xl font-black mb-6 sm:mb-8 text-center text-gray-900"
         initial={{ opacity: 0, y: 20 }}
         animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
         transition={{ duration: 0.4, delay: 0.2 }}
@@ -44,7 +44,7 @@ export default function BlogSection() {
             whileHover={{ y: -5, scale: 1.02 }}
           >
             <Link href={`/blog/${post.id}`} className="block">
-              <div className="bg-white rounded-lg sm:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100">
+              <div className="bg-white/95 backdrop-blur-sm rounded-lg sm:rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100">
                 {/* Image placeholder - you can add actual images later */}
                 <div className="h-32 sm:h-48 bg-gradient-to-br from-green-100 to-blue-100 flex items-center justify-center">
                   <div className="text-center">

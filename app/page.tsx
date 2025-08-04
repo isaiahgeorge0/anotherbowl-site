@@ -70,6 +70,9 @@ export default function HomePage() {
           />
         </div>
 
+        {/* Dark Overlay for Better Contrast */}
+        <div className="absolute inset-0 bg-black/20" />
+
         {/* Hero Content */}
         <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-8 text-center">
           <motion.div
@@ -78,12 +81,12 @@ export default function HomePage() {
             transition={{ duration: 0.8 }}
             className="mb-8"
           >
-            <h2 className="text-4xl sm:text-6xl md:text-7xl font-black text-gray-900 mb-6 leading-tight">
+            <h2 className="text-4xl sm:text-6xl md:text-7xl font-black text-white mb-6 leading-tight drop-shadow-lg">
               Fresh Food.
               <br />
               <span className="text-primary">Clean Energy.</span>
             </h2>
-            <p className="text-lg sm:text-xl md:text-2xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-lg sm:text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed font-semibold drop-shadow-md">
               Weekly run club. Made in Ipswich.
             </p>
           </motion.div>
@@ -191,18 +194,21 @@ export default function HomePage() {
       </section>
 
       {/* Enhanced CTA Buttons */}
-      <section className="py-12 sm:py-16 px-6 sm:px-8 bg-gradient-to-r from-light to-mint/20">
-        <div className="max-w-4xl mx-auto">
+      <section className="relative py-12 sm:py-16 px-6 sm:px-8 bg-gradient-to-r from-light to-mint/20">
+        {/* Dark Overlay for Better Contrast */}
+        <div className="absolute inset-0 bg-black/10" />
+        
+        <div className="relative z-10 max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="text-center mb-8"
           >
-            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
+            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 drop-shadow-sm">
               Explore Our World
             </h3>
-            <p className="text-gray-600">
+            <p className="text-gray-700 font-medium">
               Discover what makes Another Bowl special
             </p>
           </motion.div>
@@ -225,11 +231,11 @@ export default function HomePage() {
                   boxShadow: "0 20px 25px -5px rgba(255, 62, 134, 0.3), 0 10px 10px -5px rgba(255, 62, 134, 0.2)"
                 }}
                 whileTap={{ scale: 0.95 }}
-                className={`relative overflow-hidden rounded-xl px-6 py-4 font-semibold transition-all duration-300 text-sm sm:text-base ${
-                  activeSection === button.id 
-                    ? 'bg-primary text-white shadow-lg' 
-                    : 'bg-white text-primary border-2 border-primary/20 hover:border-primary hover:bg-primary/5'
-                }`}
+                                 className={`relative overflow-hidden rounded-xl px-6 py-4 font-bold transition-all duration-300 text-sm sm:text-base ${
+                   activeSection === button.id 
+                     ? 'bg-primary text-white shadow-lg' 
+                     : 'bg-white/95 text-primary border-2 border-primary/20 hover:border-primary hover:bg-primary/5 backdrop-blur-sm'
+                 }`}
               >
                 <span className="text-lg sm:text-xl mb-2 block">{button.icon}</span>
                 {button.label}
@@ -292,31 +298,31 @@ export default function HomePage() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-            {[
-              '/images/another-bowl-1.jpeg',
-              '/images/another-bowl-2.jpeg', 
-              '/images/another-bowl-3.jpeg',
-              '/images/another-bowl-4.jpeg'
-            ].map((image, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                whileHover={{ scale: 1.05 }}
-                className="relative overflow-hidden rounded-xl shadow-lg"
-              >
-                <Image
-                  src={image}
-                  alt="Instagram feed"
-                  width={300}
-                  height={300}
-                  className="w-full h-48 sm:h-64 object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
-              </motion.div>
-            ))}
+                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+             {[
+               '/images/another-bowl-1.jpeg',
+               '/images/another-bowl-2.jpeg', 
+               '/images/another-bowl-3.jpeg',
+               '/images/another-bowl-4.jpeg'
+             ].map((image, index) => (
+               <motion.div
+                 key={index}
+                 initial={{ opacity: 0, scale: 0.8 }}
+                 whileInView={{ opacity: 1, scale: 1 }}
+                 transition={{ duration: 0.5, delay: index * 0.1 }}
+                 whileHover={{ scale: 1.05 }}
+                 className="relative overflow-hidden rounded-xl shadow-lg"
+               >
+                 <Image
+                   src={image}
+                   alt="Instagram feed"
+                   width={300}
+                   height={300}
+                   className="w-full h-48 sm:h-64 object-cover"
+                 />
+                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
+               </motion.div>
+             ))}
           </div>
 
           <motion.div
