@@ -4,7 +4,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import bowlLogo from '@/public/logo.png'; // placeholder logo
 import AboutSection from './components/AboutSection';
 import MenuSection from './components/MenuSection';
 import BlogSection from './components/BlogSection';
@@ -35,7 +34,7 @@ export default function HomePage() {
             whileTap={{ scale: 0.95 }}
             className="flex items-center gap-2 cursor-pointer"
           >
-            <Image src={bowlLogo} alt="Another Bowl Logo" width={40} height={40} />
+            <Image src="/logo.png" alt="Another Bowl Logo" width={40} height={40} />
             <h1 className="text-xl font-extrabold tracking-widest uppercase">Another Bowl</h1>
           </motion.div>
         </Link>
