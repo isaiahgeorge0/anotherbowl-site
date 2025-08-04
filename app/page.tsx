@@ -17,6 +17,18 @@ export default function HomePage() {
     setActiveSection(prev => (prev === section ? null : section));
   };
 
+  const scrollToExplore = (section?: string) => {
+    const exploreSection = document.getElementById('explore-section');
+    if (exploreSection) {
+      exploreSection.scrollIntoView({ behavior: 'smooth' });
+      if (section) {
+        setTimeout(() => {
+          setActiveSection(section);
+        }, 500); // Wait for scroll to complete
+      }
+    }
+  };
+
   const heroVariants = {
     hidden: { opacity: 0, y: 50 } as const,
     visible: {
@@ -43,11 +55,63 @@ export default function HomePage() {
               height={48} 
               className="w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-md" 
             />
-            <h1 className="text-xl sm:text-2xl font-black tracking-wider uppercase text-primary">
+            <h1 className="text-xl sm:text-2xl font-black tracking-wider uppercase text-gray-900">
               Another Bowl
             </h1>
           </motion.div>
         </Link>
+
+        {/* Menu Button */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="relative"
+        >
+          <div className="relative">
+            <button
+              onClick={() => scrollToExplore()}
+              className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-primary transition-colors duration-200 font-medium"
+              aria-label="Open menu"
+            >
+              <span className="text-sm sm:text-base">Menu</span>
+              <svg 
+                className="w-5 h-5" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+
+            {/* Dropdown Menu */}
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              whileHover={{ opacity: 1, y: 0, scale: 1 }}
+              className="absolute right-0 top-full mt-2 w-48 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 overflow-hidden"
+            >
+              <div className="py-2">
+                {[
+                  { id: 'about', label: 'About Us', icon: '👥' },
+                  { id: 'menu', label: 'Menu', icon: '🥗' },
+                  { id: 'blog', label: 'Blog', icon: '📝' },
+                  { id: 'runclub', label: 'Run Club', icon: '🏃‍♀️' }
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => scrollToExplore(item.id)}
+                    className="w-full px-4 py-3 text-left text-gray-700 hover:text-primary hover:bg-primary/5 transition-colors duration-200 flex items-center gap-3"
+                  >
+                    <span className="text-lg">{item.icon}</span>
+                    <span className="font-medium">{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
       </header>
 
       {/* Dynamic Hero Section */}
@@ -194,7 +258,7 @@ export default function HomePage() {
       </section>
 
       {/* Enhanced CTA Buttons */}
-      <section className="relative py-12 sm:py-16 px-6 sm:px-8 bg-gradient-to-r from-light to-mint/20">
+      <section id="explore-section" className="relative py-12 sm:py-16 px-6 sm:px-8 bg-gradient-to-r from-light to-mint/20">
         {/* Dark Overlay for Better Contrast */}
         <div className="absolute inset-0 bg-black/10" />
         
