@@ -1,14 +1,13 @@
 import { notFound } from 'next/navigation';
 import { blogPosts } from '../../data/blogPosts';
 
-
-type BlogPostParams = {
+interface PageProps {
   params: {
     slug: string;
   };
-};
+}
 
-export default function BlogPost({ params }: BlogPostParams) {
+export default function BlogPost({ params }: PageProps) {
   const post = blogPosts.find((p) => p.id === params.slug);
 
   if (!post) return notFound();
@@ -23,4 +22,5 @@ export default function BlogPost({ params }: BlogPostParams) {
     </main>
   );
 }
+
 
