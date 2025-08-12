@@ -26,11 +26,8 @@ export default function HomePage() {
       {/* Navigation Bar */}
       <NavBar toggleSection={toggleSection} />
 
-      {/* Hero Section */}
-      <Hero />
-
-      {/* Explore Our World Section */}
-      <ExploreGrid toggleSection={toggleSection} />
+      {/* Hero Section with Integrated Explore */}
+      <Hero toggleSection={toggleSection} />
 
       {/* Dropdown Content with Smooth Animations */}
       <motion.div 
