@@ -31,3 +31,8 @@ body {
   background: radial-gradient(1200px 600px at 30% -10%, rgba(var(--brand-pink)/0.25), transparent 60%),
               radial-gradient(1000px 600px at 80% 10%, rgba(var(--brand-green)/0.18), transparent 70%);
 }
+
+.fade-bottom {
+  -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent);
+  mask-image: linear-gradient(to bottom, black 70%, transparent);
+}

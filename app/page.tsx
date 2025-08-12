@@ -115,7 +115,7 @@ export default function HomePage() {
       </header>
 
       {/* Dynamic Hero Section */}
-      <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden fade-bottom pb-24">
         {/* Branded Background */}
         <div className="absolute inset-0 section-brand-gradient" />
         
@@ -193,7 +193,7 @@ export default function HomePage() {
 
 
       {/* Enhanced CTA Buttons */}
-      <section id="explore-section" className="relative py-12 sm:py-16 px-6 sm:px-8 bg-gradient-to-r from-light to-mint/20">
+      <section id="explore-section" className="relative py-12 sm:py-16 px-6 sm:px-8 bg-gradient-to-r from-light to-mint/20 -mt-24">
         {/* Dark Overlay for Better Contrast */}
         <div className="absolute inset-0 bg-black/10" />
         
@@ -252,7 +252,7 @@ export default function HomePage() {
 
       {/* Dropdown Content with Smooth Animations */}
       <motion.div 
-        className="px-6 sm:px-8 pb-16 sm:pb-24"
+        className="px-6 sm:px-8 pb-16 sm:pb-24 fade-bottom"
         initial={false}
         animate={{ 
           height: activeSection ? 'auto' : 0,
@@ -281,7 +281,7 @@ export default function HomePage() {
       </motion.div>
 
       {/* Instagram Feed Section */}
-      <section className="py-16 sm:py-24 px-6 sm:px-8 bg-white">
+      <section className="py-16 sm:py-24 px-6 sm:px-8 bg-white fade-bottom">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
