@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 export default function ExploreGrid({ toggleSection }: { toggleSection: (section: string) => void }) {
   const exploreItems = [
     { id: 'about', label: 'About Us', icon: '👥' },
-    { id: 'menu', label: 'Menu', icon: '🥗' },
+    { id: 'menu', label: 'Our Menu', icon: '🥗' },
     { id: 'blog', label: 'Blog', icon: '📝' },
     { id: 'run-club', label: 'Run Club', icon: '🏃‍♀️' }
   ];
@@ -53,17 +53,18 @@ export default function ExploreGrid({ toggleSection }: { toggleSection: (section
           >
             <button
               onClick={() => toggleSection(item.id)}
-              className="block relative overflow-hidden rounded-xl px-6 py-4 font-black transition-all duration-200 ease-out text-sm sm:text-base cursor-pointer min-h-[44px] min-w-[44px] focus:outline-none focus:ring-2 focus:ring-offset-2 explore-card"
+              className="block relative overflow-hidden rounded-xl px-6 py-4 font-bold transition-all duration-300 ease-out text-sm sm:text-base cursor-pointer min-h-[44px] min-w-[44px] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brandPink/50 bg-white/90 backdrop-blur-sm border border-slate-200/60 shadow-lg hover:shadow-xl hover:scale-105 hover:border-brandPink/30 text-slate-800 hover:text-slate-900 group"
               aria-label={`${item.label} - Click to explore ${item.label.toLowerCase()}`}
             >
-              <span className="text-lg sm:text-xl mb-2 block">{item.icon}</span>
-              {item.label}
+              <span className="text-lg sm:text-xl mb-2 block group-hover:scale-110 transition-transform duration-300">{item.icon}</span>
+              <span className="relative z-10">{item.label}</span>
               <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-brandPink/20 to-transparent"
+                className="absolute inset-0 bg-gradient-to-r from-brandPink/10 via-brandGreen/5 to-transparent opacity-0 group-hover:opacity-100"
                 initial={{ x: '-100%' }}
                 whileHover={{ x: '100%' }}
                 transition={{ duration: 0.6 }}
               />
+              <div className="absolute inset-0 bg-gradient-to-br from-white/80 to-transparent rounded-xl" />
             </button>
           </motion.div>
         ))}

@@ -121,7 +121,7 @@ export default function NavBar({ toggleSection }: { toggleSection: (section: str
             <div className="px-6 py-4 space-y-2">
               {[
                 { id: 'about', label: 'About Us', icon: '👥' },
-                { id: 'menu', label: 'Menu', icon: '🥗' },
+                { id: 'menu', label: 'Our Menu', icon: '🥗' },
                 { id: 'blog', label: 'Blog', icon: '📝' },
                 { id: 'run-club', label: 'Run Club', icon: '🏃‍♀️' }
               ].map((item) => (

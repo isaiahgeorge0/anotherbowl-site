@@ -143,7 +143,7 @@ export default function DesktopMenuDropdown() {
         aria-controls="menu-dropdown"
         className="px-3 py-2 rounded-lg font-medium transition-all duration-200 hover:text-slate-700 hover:underline hover:underline-offset-4 hover:decoration-[var(--brand-green)] text-slate-900 flex items-center gap-1 group"
       >
-        Menu
+        Our Menu
         <svg
           className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
