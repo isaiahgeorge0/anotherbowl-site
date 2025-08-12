@@ -1,76 +1,73 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { MENU, type MenuCategory, type MenuItem } from '../data/menu';
+import { MENU, formatPrice, type MenuCategory, type MenuItem } from '../data/menu';
 
 export default function MenuSection() {
-  const [activeCategory, setActiveCategory] = useState<MenuCategory['key']>('mains');
-  const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string>(MENU[0].id);
   const tabListRef = useRef<HTMLDivElement>(null);
 
-  // URL sync
+  // URL sync for deep linking
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const category = urlParams.get('category') as MenuCategory['key'];
-    const sub = urlParams.get('sub');
+    const category = urlParams.get('category');
     
-    if (category && MENU.find(cat => cat.key === category)) {
+    if (category && MENU.find(cat => cat.id === category)) {
       setActiveCategory(category);
-    }
-    if (sub) {
-      setActiveSubcategory(sub);
     }
   }, []);
 
-  const updateURL = (category: string, sub?: string) => {
+  const updateURL = (categoryId: string) => {
     const url = new URL(window.location.href);
-    url.searchParams.set('category', category);
-    if (sub) {
-      url.searchParams.set('sub', sub);
-    } else {
-      url.searchParams.delete('sub');
-    }
+    url.searchParams.set('category', categoryId);
     window.history.replaceState({}, '', url.toString());
   };
 
-  const handleCategoryChange = (category: MenuCategory['key']) => {
-    setActiveCategory(category);
-    setActiveSubcategory(null);
-    updateURL(category);
+  const handleCategoryChange = (categoryId: string) => {
+    setActiveCategory(categoryId);
+    updateURL(categoryId);
   };
 
-  const handleSubcategoryChange = (subcategory: string) => {
-    setActiveSubcategory(subcategory);
-    updateURL(activeCategory, subcategory);
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent, category: MenuCategory['key']) => {
+  const handleKeyDown = (event: React.KeyboardEvent, categoryId: string) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      handleCategoryChange(category);
+      handleCategoryChange(categoryId);
     }
   };
 
-  const currentCategory = MENU.find(cat => cat.key === activeCategory)!;
-  const filteredItems = activeSubcategory 
-    ? currentCategory.items.filter(item => item.subcategory === activeSubcategory)
-    : currentCategory.items;
+  const currentCategory = MENU.find(cat => cat.id === activeCategory)!;
+
+  // Get theme-based background class
+  const getThemeBackground = (theme?: string) => {
+    switch (theme) {
+      case 'pink':
+        return 'from-[var(--brand-pink-hex)]/10 to-white';
+      case 'peach':
+        return 'from-orange-200/10 to-white';
+      case 'green':
+        return 'from-[var(--brand-green-hex)]/10 to-white';
+      case 'beige':
+        return 'from-stone-100 to-white';
+      default:
+        return 'from-white to-white';
+    }
+  };
 
   return (
     <section className="py-12 sm:py-16 px-6 sm:px-8 bg-white">
       <div className="max-w-6xl mx-auto">
         {/* Section Header */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-4xl font-black text-gray-900 mb-4">
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">
             Our Menu
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
             Fresh, nutritious food made with love. From hearty mains to refreshing drinks.
           </p>
         </div>
 
-        {/* Primary Tabs */}
-        <div 
+        {/* Sticky Tab Bar */}
+        <div
           ref={tabListRef}
           className="sticky top-[var(--menu-sticky-top,64px)] z-20 bg-white/95 backdrop-blur-sm border-b border-gray-200 mb-8"
           role="tablist"
@@ -79,139 +76,122 @@ export default function MenuSection() {
           <div className="flex overflow-x-auto scrollbar-hide snap-x snap-mandatory scrollbar-gutter-stable">
             {MENU.map((category) => (
               <button
-                key={category.key}
+                key={category.id}
                 role="tab"
-                aria-selected={activeCategory === category.key}
-                aria-controls={`panel-${category.key}`}
-                data-testid={`tab-${category.key}`}
-                onClick={() => handleCategoryChange(category.key)}
-                onKeyDown={(e) => handleKeyDown(e, category.key)}
+                aria-selected={activeCategory === category.id}
+                aria-controls={`panel-${category.id}`}
+                data-testid={`tab-${category.id}`}
+                onClick={() => handleCategoryChange(category.id)}
+                onKeyDown={(e) => handleKeyDown(e, category.id)}
                 className={`
                   flex-shrink-0 px-6 py-4 font-semibold text-sm sm:text-base transition-all duration-200
                   focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--brand-pink-hex)]
                   snap-start
-                  ${activeCategory === category.key 
-                    ? 'menu-tab-active border-b-2 border-transparent bg-gradient-to-r from-[var(--brand-pink-hex)] to-[var(--brand-green-hex)] bg-clip-border' 
-                    : 'text-gray-600 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300'
+                  ${activeCategory === category.id
+                    ? 'text-slate-900 border-b-2 border-[var(--brand-pink-hex)]'
+                    : 'text-slate-600 hover:text-slate-900 border-b-2 border-transparent hover:border-gray-300'
                   }
                 `}
               >
-                {category.label}
+                {category.title}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Sub-pills for categories that have them */}
-        {currentCategory.subcategories && currentCategory.subcategories.length > 0 && (
-          <div className="mb-8">
-            <div className="flex flex-wrap gap-2 justify-center">
-              <button
-                onClick={() => handleSubcategoryChange('')}
-                className={`
-                  px-4 py-2 text-sm font-medium rounded-full transition-all duration-200
-                  focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--brand-pink-hex)]
-                  ${!activeSubcategory 
-                    ? 'bg-[var(--brand-pink-hex)] text-white shadow-md' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }
-                `}
-              >
-                All {currentCategory.label}
-              </button>
-              {currentCategory.subcategories.map((sub) => (
-                <button
-                  key={sub}
-                  onClick={() => handleSubcategoryChange(sub)}
-                  className={`
-                    px-4 py-2 text-sm font-medium rounded-full transition-all duration-200
-                    focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--brand-pink-hex)]
-                    ${activeSubcategory === sub 
-                      ? 'bg-[var(--brand-green-hex)] text-white shadow-md' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }
-                  `}
-                >
-                  {sub}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Menu Items Grid */}
-        <div 
+        {/* Menu Items Panel */}
+        <div
           role="tabpanel"
           id={`panel-${activeCategory}`}
           aria-labelledby={`tab-${activeCategory}`}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="min-h-[400px]"
         >
-          {filteredItems.map((item) => (
-            <div
-              key={item.id}
-              data-testid={`menu-item-${item.id}`}
-              className="menu-item-card bg-white rounded-xl shadow-sm p-6 focus-within:ring-2 focus-within:ring-[var(--brand-pink-hex)] focus-within:ring-offset-2"
-            >
-              {/* Item Header with Name and Price */}
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="font-semibold text-gray-900 text-lg leading-tight flex-1 pr-4">
-                  {item.name}
-                </h3>
-                <span className="font-bold text-[var(--brand-ink)] text-lg flex-shrink-0">
-                  {item.price}
-                </span>
-              </div>
-
-              {/* Description */}
-              {item.description && (
-                <p className="text-gray-600 text-sm mb-4 leading-relaxed">
-                  {item.description}
-                </p>
-              )}
-
-              {/* Dietary Flags */}
-              {item.flags && item.flags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {item.flags.map((flag) => (
-                    <span
-                      key={flag}
-                      className={`
-                        px-2 py-1 text-xs font-medium rounded-full
-                        ${flag === 'V' ? 'bg-green-100 text-green-800' : ''}
-                        ${flag === 'VG' ? 'bg-emerald-100 text-emerald-800' : ''}
-                        ${flag === 'GF' ? 'bg-blue-100 text-blue-800' : ''}
-                        ${flag === 'N' ? 'bg-orange-100 text-orange-800' : ''}
-                      `}
-                    >
-                      {flag === 'V' && 'Vegetarian'}
-                      {flag === 'VG' && 'Vegan'}
-                      {flag === 'GF' && 'Gluten Free'}
-                      {flag === 'N' && 'Contains Nuts'}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Subcategory Badge */}
-              {item.subcategory && (
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <span className="text-xs text-gray-500 font-medium">
-                    {item.subcategory}
-                  </span>
-                </div>
-              )}
+          {/* Themed Background */}
+          <div className={`absolute inset-0 bg-gradient-to-b ${getThemeBackground(currentCategory.theme)} pointer-events-none`} />
+          
+          {/* Content */}
+          <div className="relative z-10">
+            {/* Category Title */}
+            <div className="text-center mb-8">
+              <h3 className="text-2xl sm:text-3xl font-bold text-slate-900">
+                {currentCategory.title}
+              </h3>
             </div>
-          ))}
-        </div>
 
-        {/* Empty State */}
-        {filteredItems.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">
-              No items found in this category.
-            </p>
+            {/* Menu Items Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {currentCategory.items.map((item, index) => (
+                <div
+                  key={`${currentCategory.id}-${index}`}
+                  data-testid={`menu-item-${currentCategory.id}-${index}`}
+                  className="menu-item-card bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:border-[var(--brand-pink-hex)] transition-all duration-200 focus-within:ring-2 focus-within:ring-[var(--brand-pink-hex)] focus-within:ring-offset-2"
+                >
+                  {/* Item Header with Name and Prices */}
+                  <div className="flex items-start justify-between mb-3">
+                    <h4 className="font-semibold text-slate-900 text-lg leading-tight flex-1 pr-4">
+                      {item.name}
+                    </h4>
+                    <div className="flex flex-col items-end flex-shrink-0">
+                      {item.prices.map((price, priceIndex) => (
+                        <span key={priceIndex} className="font-bold text-slate-900 text-lg">
+                          {formatPrice(price)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  {item.description && (
+                    <p className="text-slate-600 text-sm mb-3 leading-relaxed">
+                      {item.description}
+                    </p>
+                  )}
+
+                  {/* Tags */}
+                  {item.tags && item.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {item.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className={`
+                            px-2 py-1 text-xs font-medium rounded-full
+                            ${tag === 'V' ? 'bg-green-100 text-green-800' : ''}
+                            ${tag === 'VE' ? 'bg-emerald-100 text-emerald-800' : ''}
+                            ${tag === 'GF' ? 'bg-blue-100 text-blue-800' : ''}
+                            ${tag === 'N' ? 'bg-orange-100 text-orange-800' : ''}
+                          `}
+                        >
+                          {tag === 'V' && 'Vegetarian'}
+                          {tag === 'VE' && 'Vegan'}
+                          {tag === 'GF' && 'Gluten Free'}
+                          {tag === 'N' && 'Contains Nuts'}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Notes */}
+                  {item.notes && (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                        {item.notes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Empty State */}
+            {currentCategory.items.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-slate-500 text-lg">
+                  No items found in this category.
+                </p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </section>
   );

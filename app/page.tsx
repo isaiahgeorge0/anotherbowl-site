@@ -18,13 +18,22 @@ export default function HomePage() {
   };
 
   const scrollToExplore = (section?: string) => {
-    const exploreSection = document.getElementById('explore-section');
-    if (exploreSection) {
-      exploreSection.scrollIntoView({ behavior: 'smooth' });
-      if (section) {
-        setTimeout(() => {
-          setActiveSection(section);
-        }, 500); // Wait for scroll to complete
+    if (section === 'menu') {
+      // Scroll directly to menu section
+      const menuSection = document.getElementById('menu');
+      if (menuSection) {
+        menuSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      // Scroll to explore section and open dropdown
+      const exploreSection = document.getElementById('explore-section');
+      if (exploreSection) {
+        exploreSection.scrollIntoView({ behavior: 'smooth' });
+        if (section) {
+          setTimeout(() => {
+            setActiveSection(section);
+          }, 500); // Wait for scroll to complete
+        }
       }
     }
   };
@@ -70,7 +79,7 @@ export default function HomePage() {
         >
           <div className="relative">
             <button
-              onClick={() => scrollToExplore()}
+              onClick={() => scrollToExplore('menu')}
               className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-primary transition-colors duration-200 font-medium"
               aria-label="Open menu"
             >
@@ -289,11 +298,17 @@ export default function HomePage() {
           transition={{ duration: 0.3, delay: 0.1 }}
         >
           {activeSection === 'about' && <AboutSection />}
-          {activeSection === 'menu' && <MenuSection />}
           {activeSection === 'blog' && <BlogSection />}
           {activeSection === 'runclub' && <RunClubSection />}
         </motion.div>
       </motion.div>
+
+      {/* Menu Section - Standalone with gradient blend */}
+      <section id="menu" className="relative">
+        {/* Blend hero → menu to remove the hard line */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-white/70 to-white" />
+        <MenuSection />
+      </section>
 
       {/* Instagram Feed Section */}
       <section className="py-16 sm:py-24 px-6 sm:px-8 bg-white -mt-24 pt-40 relative section-seamless">
