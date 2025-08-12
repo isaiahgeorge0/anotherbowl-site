@@ -1,14 +1,13 @@
 'use client';
 
-import Link from 'next/link';
 import { motion } from 'framer-motion';
 
-export default function ExploreGrid() {
+export default function ExploreGrid({ toggleSection }: { toggleSection: (section: string) => void }) {
   const exploreItems = [
-    { id: 'about', label: 'About Us', icon: '👥', href: '#about' },
-    { id: 'menu', label: 'Menu', icon: '🥗', href: '#menu' },
-    { id: 'blog', label: 'Blog', icon: '📝', href: '#blog' },
-    { id: 'run-club', label: 'Run Club', icon: '🏃‍♀️', href: '#run-club' }
+    { id: 'about', label: 'About Us', icon: '👥' },
+    { id: 'menu', label: 'Menu', icon: '🥗' },
+    { id: 'blog', label: 'Blog', icon: '📝' },
+    { id: 'run-club', label: 'Run Club', icon: '🏃‍♀️' }
   ];
 
   return (
@@ -52,8 +51,8 @@ export default function ExploreGrid() {
             whileTap={{ scale: 0.98, y: 0 }}
             whileFocus={{ scale: 1.005, y: -1 }}
           >
-            <Link
-              href={item.href}
+            <button
+              onClick={() => toggleSection(item.id)}
               className="block relative overflow-hidden rounded-xl px-6 py-4 font-black transition-all duration-200 ease-out text-sm sm:text-base cursor-pointer min-h-[44px] min-w-[44px] focus:outline-none focus:ring-2 focus:ring-offset-2 explore-card"
               aria-label={`${item.label} - Click to explore ${item.label.toLowerCase()}`}
             >
@@ -65,7 +64,7 @@ export default function ExploreGrid() {
                 whileHover={{ x: '100%' }}
                 transition={{ duration: 0.6 }}
               />
-            </Link>
+            </button>
           </motion.div>
         ))}
       </div>
