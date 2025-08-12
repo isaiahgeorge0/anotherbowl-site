@@ -9,6 +9,8 @@ module.exports = {
         accent: '#FFD700',
         mint: '#C8F6BA',
         berry: '#9400D3',
+        brandPink: 'rgb(var(--brand-pink) / <alpha-value>)',
+        brandGreen: 'rgb(var(--brand-green) / <alpha-value>)',
       },
     },
   },
