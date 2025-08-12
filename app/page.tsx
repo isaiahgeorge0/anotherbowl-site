@@ -54,7 +54,7 @@ export default function HomePage() {
       <NavBar />
 
       {/* Dynamic Hero Section */}
-      <section className="relative min-h-[80vh] flex flex-col items-center justify-center overflow-hidden hero-stable">
+      <section className="relative min-h-[80vh] flex flex-col items-center justify-center overflow-hidden hero-stable scroll-mt-20 md:scroll-mt-24">
         {/* Branded Background */}
         <div className="absolute inset-0 section-brand-gradient" />
         
@@ -99,7 +99,7 @@ export default function HomePage() {
 
           {/* Hero Images Grid */}
           <motion.div
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto mb-12"
+            className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6 max-w-4xl mx-auto mb-12 mt-3 sm:mt-4"
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
@@ -120,8 +120,9 @@ export default function HomePage() {
                   alt={image.alt}
                   width={400}
                   height={300}
-                  className="h-64 sm:h-80 w-full object-cover hero-image-stable"
-                  priority
+                  className="w-[clamp(84px,28vw,320px)] h-[clamp(110px,36vw,360px)] object-cover hero-image-stable"
+                  priority={i === 0}
+                  sizes="(max-width: 768px) 28vw, 33vw"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
               </motion.div>
