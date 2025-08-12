@@ -80,7 +80,7 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-black/20" />
 
         {/* Hero Content */}
-        <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-8 text-center mb-12">
+        <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-8 text-center mb-12 pt-8 sm:pt-12 md:pt-16">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
