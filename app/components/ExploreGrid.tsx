@@ -12,11 +12,12 @@ export default function ExploreGrid() {
   ];
 
   return (
-    <div className="relative z-10 w-full max-w-6xl mx-auto px-6 sm:px-8 mb-16">
-      {/* Subtle Brand Glow Behind Cards */}
-      <div className="absolute inset-0 -z-10 flex justify-center items-center">
-        <div className="w-96 h-32 bg-gradient-radial from-brandPink/8 via-brandGreen/5 to-transparent rounded-full blur-xl" />
-      </div>
+    <section className="relative -mt-24 pt-24 pb-16 bg-gradient-to-b from-transparent to-white">
+      <div className="relative z-20 w-full max-w-6xl mx-auto px-6 sm:px-8">
+        {/* Subtle Brand Glow Behind Cards */}
+        <div className="absolute inset-0 -z-10 flex justify-center items-center">
+          <div className="w-96 h-32 bg-gradient-radial from-brandPink/8 via-brandGreen/5 to-transparent rounded-full blur-xl" />
+        </div>
       
       <motion.div
         initial={{ opacity: 0, y: 30 }}
@@ -68,6 +69,7 @@ export default function ExploreGrid() {
           </motion.div>
         ))}
       </div>
-    </div>
+      </div>
+    </section>
   );
 }

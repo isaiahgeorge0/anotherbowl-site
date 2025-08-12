@@ -1,31 +1,16 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { MENU, formatPrice, type MenuCategory, type MenuItem } from '../data/menu';
 
 export default function MenuSection() {
   const [activeCategory, setActiveCategory] = useState<string>(MENU[0].id);
   const tabListRef = useRef<HTMLDivElement>(null);
 
-  // URL sync for deep linking
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const category = urlParams.get('category');
-    
-    if (category && MENU.find(cat => cat.id === category)) {
-      setActiveCategory(category);
-    }
-  }, []);
-
-  const updateURL = (categoryId: string) => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('category', categoryId);
-    window.history.replaceState({}, '', url.toString());
-  };
-
   const handleCategoryChange = (categoryId: string) => {
     setActiveCategory(categoryId);
-    updateURL(categoryId);
+    // Smooth scroll to menu section for better UX
+    document.querySelector('#menu')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleKeyDown = (event: React.KeyboardEvent, categoryId: string) => {

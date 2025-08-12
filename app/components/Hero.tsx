@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 
 export default function Hero() {
   return (
-    <section className="relative min-h-[80vh] flex flex-col items-center justify-center overflow-hidden hero-stable scroll-mt-20 md:scroll-mt-24">
+    <section className="relative min-h-[540px] lg:min-h-[680px] flex flex-col items-center justify-center overflow-hidden hero-stable scroll-mt-20 md:scroll-mt-24">
       {/* Branded Background */}
       <div className="absolute inset-0 section-brand-gradient" />
       
@@ -71,9 +71,9 @@ export default function Hero() {
                 alt={image.alt}
                 width={400}
                 height={300}
-                className="w-[clamp(84px,28vw,320px)] h-[clamp(110px,36vw,360px)] object-cover hero-image-stable"
+                className="w-full h-auto max-w-[320px] object-cover hero-image-stable"
                 priority={i === 0}
-                sizes="(max-width: 768px) 28vw, 33vw"
+                sizes="(max-width: 640px) 28vw, (max-width: 768px) 30vw, 33vw"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
             </motion.div>
@@ -82,7 +82,7 @@ export default function Hero() {
       </div>
 
       {/* Bottom Fade Overlay - Natural fade using page background colors */}
-      <div className="absolute bottom-0 left-0 right-0 h-48 hero-fade-gradient pointer-events-none z-0" />
+      <div className="absolute bottom-0 left-0 right-0 h-48 hero-fade-gradient pointer-events-none z-10" />
     </section>
   );
 }
