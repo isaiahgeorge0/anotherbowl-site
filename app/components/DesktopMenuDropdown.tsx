@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MENU } from '../data/menu';
 
@@ -84,13 +85,8 @@ export default function DesktopMenuDropdown() {
     setIsOpen(false);
   };
 
-  const scrollToCategory = (categoryId: string) => {
-    const element = document.getElementById(categoryId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-    setIsOpen(false);
-    triggerRef.current?.focus();
+  const getCategoryHash = (categoryId: string) => {
+    return `#${categoryId}`;
   };
 
   const getThemeColor = (theme?: string) => {
@@ -182,9 +178,10 @@ export default function DesktopMenuDropdown() {
                   </h3>
                   <div className="grid grid-cols-2 gap-2">
                     {group.categories.map((category) => (
-                      <button
+                      <Link
                         key={category.id}
-                        onClick={() => scrollToCategory(category.id)}
+                        href={getCategoryHash(category.id)}
+                        onClick={() => setIsOpen(false)}
                         className="flex items-center gap-2 p-2 rounded-lg text-left text-sm text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors duration-200 group/item"
                         role="menuitem"
                       >
@@ -192,7 +189,7 @@ export default function DesktopMenuDropdown() {
                         <span className="truncate group-hover/item:text-slate-900">
                           {category.title}
                         </span>
-                      </button>
+                      </Link>
                     ))}
                   </div>
                 </div>

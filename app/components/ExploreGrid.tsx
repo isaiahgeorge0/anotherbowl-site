@@ -5,10 +5,10 @@ import { motion } from 'framer-motion';
 
 export default function ExploreGrid() {
   const exploreItems = [
-    { id: 'about', label: 'About Us', icon: '👥', href: '/about' },
-    { id: 'menu', label: 'Menu', icon: '🥗', href: '/menu' },
-    { id: 'blog', label: 'Blog', icon: '📝', href: '/blog' },
-    { id: 'run-club', label: 'Run Club', icon: '🏃‍♀️', href: '/run-club' }
+    { id: 'about', label: 'About Us', icon: '👥', href: '#about' },
+    { id: 'menu', label: 'Menu', icon: '🥗', href: '#menu' },
+    { id: 'blog', label: 'Blog', icon: '📝', href: '#blog' },
+    { id: 'run-club', label: 'Run Club', icon: '🏃‍♀️', href: '#run-club' }
   ];
 
   return (
