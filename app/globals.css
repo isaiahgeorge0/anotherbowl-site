@@ -118,4 +118,14 @@ body {
   }
 }
 
+/* Instagram button gradient text */
+.instagram-gradient-text {
+  background: linear-gradient(135deg, #F59DB5 0%, #6FCF97 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-fill-color: transparent;
+  color: #F59DB5; /* Fallback color if gradient fails */
+}
+
 
