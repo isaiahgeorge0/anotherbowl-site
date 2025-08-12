@@ -5,6 +5,9 @@
   --foreground: #171717;
   --brand-pink: 245 157 181; /* #F59DB5 */
   --brand-green: 111 207 151; /* #6FCF97 */
+  --brand-pink-hex: #F6A9C5;
+  --brand-green-hex: #A7D8A5;
+  --brand-ink: #0E1A2B;
 }
 
 /*@theme inline { 
@@ -126,6 +129,56 @@ body {
   -webkit-text-fill-color: transparent;
   text-fill-color: transparent;
   color: #F59DB5; /* Fallback color if gradient fails */
+}
+
+/* Brand gradient utility */
+.brand-grad {
+  background-image: linear-gradient(90deg, var(--brand-pink-hex), var(--brand-green-hex));
+}
+
+/* Menu tab styles */
+.menu-tab-active {
+  background: linear-gradient(90deg, var(--brand-pink-hex), var(--brand-green-hex));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-fill-color: transparent;
+  color: var(--brand-ink); /* Fallback for accessibility */
+}
+
+/* Menu item card hover effects */
+.menu-item-card {
+  transition: all 0.2s ease-out;
+  border: 1px solid #e5e7eb;
+}
+
+.menu-item-card:hover,
+.menu-item-card:focus-within {
+  border-color: var(--brand-pink-hex);
+  box-shadow: 0 4px 12px rgba(246, 169, 197, 0.15);
+}
+
+/* Dotted leaders for price alignment */
+.menu-item-leader {
+  background-image: radial-gradient(circle, #d1d5db 1px, transparent 1px);
+  background-size: 4px 2px;
+  background-repeat: repeat-x;
+  background-position: center;
+}
+
+/* Hide scrollbar for menu tabs */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Ensure scrollbar gutter is stable */
+.scrollbar-gutter-stable {
+  scrollbar-gutter: stable;
 }
 
 
