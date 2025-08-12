@@ -12,6 +12,9 @@ module.exports = {
         brandPink: 'rgb(var(--brand-pink) / <alpha-value>)',
         brandGreen: 'rgb(var(--brand-green) / <alpha-value>)',
       },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+      },
     },
   },
   plugins: [

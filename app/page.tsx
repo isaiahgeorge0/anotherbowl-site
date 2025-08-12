@@ -115,7 +115,7 @@ export default function HomePage() {
       </header>
 
       {/* Dynamic Hero Section */}
-      <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden fade-bottom pb-24">
+      <section className="relative min-h-[80vh] flex flex-col items-center justify-center overflow-hidden hero-stable">
         {/* Branded Background */}
         <div className="absolute inset-0 section-brand-gradient" />
         
@@ -141,7 +141,7 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-black/20" />
 
         {/* Hero Content */}
-        <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-8 text-center">
+        <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-8 text-center mb-12">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -160,7 +160,7 @@ export default function HomePage() {
 
           {/* Hero Images Grid */}
           <motion.div
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto"
+            className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto mb-12"
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
@@ -181,33 +181,31 @@ export default function HomePage() {
                   alt={image.alt}
                   width={400}
                   height={300}
-                  className="h-64 sm:h-80 w-full object-cover"
+                  className="h-64 sm:h-80 w-full object-cover hero-image-stable"
+                  priority
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
               </motion.div>
             ))}
           </motion.div>
         </div>
-      </section>
 
-
-
-      {/* Enhanced CTA Buttons */}
-      <section id="explore-section" className="relative py-12 sm:py-16 px-6 sm:px-8 bg-gradient-to-r from-light to-mint/20 -mt-24">
-        {/* Dark Overlay for Better Contrast */}
-        <div className="absolute inset-0 bg-black/10" />
-        
-        <div className="relative z-10 max-w-4xl mx-auto">
+        {/* Explore Our World Menu - Now Inside Hero */}
+        <div className="relative z-10 w-full max-w-6xl mx-auto px-6 sm:px-8 mb-16">
+          {/* Subtle Brand Glow Behind Cards */}
+          <div className="absolute inset-0 -z-10 flex justify-center items-center">
+            <div className="w-96 h-32 bg-gradient-radial from-brandPink/8 via-brandGreen/5 to-transparent rounded-full blur-xl" />
+          </div>
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="text-center mb-8"
           >
-            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 drop-shadow-sm">
+            <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4 drop-shadow-lg">
               Explore Our World
             </h3>
-            <p className="text-gray-700 font-medium">
+            <p className="text-white/90 font-medium drop-shadow-md">
               Discover what makes Another Bowl special
             </p>
           </motion.div>
@@ -224,35 +222,52 @@ export default function HomePage() {
                 onClick={() => toggleSection(button.id)}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
-                                 whileHover={{ 
-                   scale: 1.05, 
-                   boxShadow: "0 25px 50px -12px rgba(245, 157, 181, 0.4), 0 10px 20px -5px rgba(245, 157, 181, 0.3)"
-                 }}
-                whileTap={{ scale: 0.95 }}
-                                 className={`relative overflow-hidden rounded-xl px-6 py-4 font-black transition-all duration-300 text-sm sm:text-base shadow-md focus:outline-none focus:ring-2 focus:ring-brandGreen/50 focus:ring-offset-2 ${
-                   activeSection === button.id 
-                     ? 'bg-brandPink text-white shadow-xl ring-2 ring-brandPink/30' 
-                     : 'bg-white/90 text-gray-800 border-2 border-gray-200 hover:border-brandPink hover:bg-brandPink/5 backdrop-blur-sm hover:shadow-lg focus:border-brandPink focus:bg-brandPink/5 hover:shadow-[0_0_0_3px_rgba(var(--brand-pink)/0.25)]'
-                 }`}
+                transition={{ 
+                  duration: 0.4, 
+                  delay: index * 0.1,
+                  scale: { type: "spring", stiffness: 300, damping: 20 }
+                }}
+                whileHover={{ 
+                  scale: 1.01,
+                  y: -2,
+                  boxShadow: "0 20px 40px -12px rgba(0, 0, 0, 0.15), 0 8px 16px -4px rgba(0, 0, 0, 0.1)"
+                }}
+                whileTap={{ scale: 0.98, y: 0 }}
+                whileFocus={{ scale: 1.005, y: -1 }}
+                className={`relative overflow-hidden rounded-xl px-6 py-4 font-black transition-all duration-200 ease-out text-sm sm:text-base cursor-pointer min-h-[44px] min-w-[44px] focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                  activeSection === button.id 
+                    ? 'bg-brandPink text-white shadow-xl ring-2 ring-brandPink/50 ring-offset-2 ring-offset-white/80' 
+                    : 'explore-card'
+                }`}
+                aria-label={`${button.label} - Click to explore ${button.label.toLowerCase()}`}
+                role="button"
+                tabIndex={0}
               >
                 <span className="text-lg sm:text-xl mb-2 block">{button.icon}</span>
                 {button.label}
-                                 <motion.div
-                   className="absolute inset-0 bg-gradient-to-r from-brandPink/30 to-transparent"
-                   initial={{ x: '-100%' }}
-                   whileHover={{ x: '100%' }}
-                   transition={{ duration: 0.6 }}
-                 />
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-brandPink/20 to-transparent"
+                  initial={{ x: '-100%' }}
+                  whileHover={{ x: '100%' }}
+                  transition={{ duration: 0.6 }}
+                />
               </motion.button>
             ))}
           </div>
         </div>
+
+        {/* Bottom Fade Overlay - Natural fade using page background colors */}
+        <div className="absolute bottom-0 left-0 right-0 h-48 hero-fade-gradient pointer-events-none z-0" />
       </section>
+
+
+
+
+
 
       {/* Dropdown Content with Smooth Animations */}
       <motion.div 
-        className="px-6 sm:px-8 pb-16 sm:pb-24 fade-bottom"
+        className="px-6 sm:px-8 pb-16 sm:pb-24 -mt-8 pt-16 bg-gradient-to-b from-white/80 to-light/50 section-seamless"
         initial={false}
         animate={{ 
           height: activeSection ? 'auto' : 0,
@@ -281,7 +296,7 @@ export default function HomePage() {
       </motion.div>
 
       {/* Instagram Feed Section */}
-      <section className="py-16 sm:py-24 px-6 sm:px-8 bg-white fade-bottom">
+      <section className="py-16 sm:py-24 px-6 sm:px-8 bg-white -mt-24 pt-40 relative section-seamless">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
