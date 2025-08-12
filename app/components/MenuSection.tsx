@@ -106,6 +106,8 @@ export default function MenuSection() {
           aria-labelledby={`tab-${activeCategory}`}
           className="min-h-[400px]"
         >
+          {/* Category ID for scroll targeting */}
+          <div id={currentCategory.id} className="scroll-mt-28 md:scroll-mt-32" />
           {/* Themed Background */}
           <div className={`absolute inset-0 bg-gradient-to-b ${getThemeBackground(currentCategory.theme)} pointer-events-none`} />
           

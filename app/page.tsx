@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import NavBar from './components/NavBar';
 import AboutSection from './components/AboutSection';
 import MenuSection from './components/MenuSection';
 import BlogSection from './components/BlogSection';
@@ -49,79 +50,8 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen scroll-smooth bg-gradient-to-br from-light via-white to-light">
-      {/* Enhanced Sticky Header */}
-      <header className="sticky top-0 z-50 flex items-center justify-between px-6 sm:px-8 py-4 sm:py-6 bg-white/90 backdrop-blur-md shadow-lg border-b border-brandPink/10">
-        <Link href="/">
-          <motion.div
-            whileHover={{ scale: 1.05, rotate: 1 }}
-            whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-3 cursor-pointer"
-          >
-            <Image 
-              src="/images/another-bowl-logo.jpeg" 
-              alt="Another Bowl Logo" 
-              width={48} 
-              height={48} 
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-md" 
-            />
-            <h1 className="text-xl sm:text-2xl font-black tracking-wider uppercase text-gray-900">
-              Another Bowl
-            </h1>
-          </motion.div>
-        </Link>
-
-        {/* Menu Button */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="relative"
-        >
-          <div className="relative">
-            <button
-              onClick={() => scrollToExplore('menu')}
-              className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-primary transition-colors duration-200 font-medium"
-              aria-label="Open menu"
-            >
-              <span className="text-sm sm:text-base">Menu</span>
-              <svg 
-                className="w-5 h-5" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-
-            {/* Dropdown Menu */}
-            <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              whileHover={{ opacity: 1, y: 0, scale: 1 }}
-              className="absolute right-0 top-full mt-2 w-48 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 overflow-hidden"
-            >
-              <div className="py-2">
-                {[
-                  { id: 'about', label: 'About Us', icon: '👥' },
-                  { id: 'menu', label: 'Menu', icon: '🥗' },
-                  { id: 'blog', label: 'Blog', icon: '📝' },
-                  { id: 'runclub', label: 'Run Club', icon: '🏃‍♀️' }
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => scrollToExplore(item.id)}
-                    className="w-full px-4 py-3 text-left text-gray-700 hover:text-primary hover:bg-primary/5 transition-colors duration-200 flex items-center gap-3"
-                  >
-                    <span className="text-lg">{item.icon}</span>
-                    <span className="font-medium">{item.label}</span>
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-        </motion.div>
-      </header>
+            {/* Navigation Bar */}
+      <NavBar />
 
       {/* Dynamic Hero Section */}
       <section className="relative min-h-[80vh] flex flex-col items-center justify-center overflow-hidden hero-stable">
@@ -304,14 +234,29 @@ export default function HomePage() {
       </motion.div>
 
       {/* Menu Section - Standalone with gradient blend */}
-      <section id="menu" className="relative">
+      <section id="menu" className="relative scroll-mt-28 md:scroll-mt-32">
         {/* Blend hero → menu to remove the hard line */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-white/70 to-white" />
         <MenuSection />
       </section>
 
+      {/* About Section - Standalone */}
+      <section id="about" className="py-16 sm:py-24 px-6 sm:px-8 bg-white scroll-mt-28 md:scroll-mt-32">
+        <AboutSection />
+      </section>
+
+      {/* Blog Section - Standalone */}
+      <section id="blog" className="py-16 sm:py-24 px-6 sm:px-8 bg-slate-50 scroll-mt-28 md:scroll-mt-32">
+        <BlogSection />
+      </section>
+
+      {/* Run Club Section - Standalone */}
+      <section id="run-club" className="py-16 sm:py-24 px-6 sm:px-8 bg-white scroll-mt-28 md:scroll-mt-32">
+        <RunClubSection />
+      </section>
+
       {/* Instagram Feed Section */}
-      <section className="py-16 sm:py-24 px-6 sm:px-8 bg-white -mt-24 pt-40 relative section-seamless">
+      <section className="py-16 sm:py-24 px-6 sm:px-8 bg-white relative section-seamless">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
