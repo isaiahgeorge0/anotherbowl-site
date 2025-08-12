@@ -9,8 +9,6 @@ export default function MenuSection() {
 
   const handleCategoryChange = (categoryId: string) => {
     setActiveCategory(categoryId);
-    // Smooth scroll to menu section for better UX
-    document.querySelector('#menu')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleKeyDown = (event: React.KeyboardEvent, categoryId: string) => {
@@ -89,7 +87,7 @@ export default function MenuSection() {
           role="tabpanel"
           id={`panel-${activeCategory}`}
           aria-labelledby={`tab-${activeCategory}`}
-          className="min-h-[400px]"
+          className="relative"
         >
           {/* Category ID for scroll targeting */}
           <div id={currentCategory.id} className="scroll-mt-24 lg:scroll-mt-32" />
