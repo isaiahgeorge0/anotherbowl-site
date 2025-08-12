@@ -124,25 +124,19 @@ export default function Hero({ toggleSection }: { toggleSection: (section: strin
                 whileFocus={{ scale: 1.005, y: -1 }}
               >
                 <button
-                  onClick={() => {
-                    if (item.id === 'menu') {
-                      // Scroll to menu section instead of opening dropdown
-                      document.querySelector('#menu')?.scrollIntoView({ behavior: 'smooth' });
-                    } else {
-                      toggleSection(item.id);
-                    }
-                  }}
-                  className="block relative overflow-hidden rounded-xl px-6 py-4 font-bold transition-all duration-300 ease-out text-sm sm:text-base cursor-pointer min-h-[44px] min-w-[44px] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 bg-white/20 backdrop-blur-sm border border-white/30 text-white hover:text-white hover:bg-white/30 hover:border-white/50 group"
+                  onClick={() => toggleSection(item.id)}
+                  className="block relative overflow-hidden rounded-xl px-6 py-4 font-bold transition-all duration-300 ease-out text-sm sm:text-base cursor-pointer min-h-[60px] min-w-[140px] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brandPink/50 bg-white/95 backdrop-blur-sm border border-slate-200/60 shadow-lg hover:shadow-xl hover:scale-105 hover:border-brandPink/30 text-slate-800 hover:text-slate-900 group"
                   aria-label={`${item.label} - Click to explore ${item.label.toLowerCase()}`}
                 >
                   <span className="text-lg sm:text-xl mb-2 block group-hover:scale-110 transition-transform duration-300">{item.icon}</span>
                   <span className="relative z-10">{item.label}</span>
                   <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100"
+                    className="absolute inset-0 bg-gradient-to-r from-brandPink/10 via-brandGreen/5 to-transparent opacity-0 group-hover:opacity-100"
                     initial={{ x: '-100%' }}
                     whileHover={{ x: '100%' }}
                     transition={{ duration: 0.6 }}
                   />
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/80 to-transparent rounded-xl" />
                 </button>
               </motion.div>
             ))}

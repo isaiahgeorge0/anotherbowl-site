@@ -53,6 +53,7 @@ export default function HomePage() {
           transition={{ duration: 0.3, delay: 0.1 }}
         >
           {activeSection === 'about' && <AboutSection />}
+          {activeSection === 'menu' && <MenuSection />}
           {activeSection === 'blog' && <BlogSection />}
           {activeSection === 'run-club' && <RunClubSection />}
         </motion.div>
@@ -60,13 +61,6 @@ export default function HomePage() {
 
       {/* Follow Our Journey Section */}
       <FollowJourney />
-
-      {/* Menu Section - Standalone with gradient blend */}
-      <section id="menu" className="relative scroll-mt-24 lg:scroll-mt-32">
-        {/* Blend hero → menu to remove the hard line */}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-white/70 to-white" />
-        <MenuSection />
-      </section>
       
       {/* Footer */}
       <Footer />
