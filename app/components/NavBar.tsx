@@ -3,62 +3,19 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import DesktopMenuDropdown from './DesktopMenuDropdown';
 
 export default function NavBar() {
-  const [activeLink, setActiveLink] = useState<string>('');
+  const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const observerRef = useRef<IntersectionObserver | null>(null);
 
-  // Scroll spy functionality
-  useEffect(() => {
-    const sections = [
-      { id: 'about', element: document.getElementById('about') },
-      { id: 'menu', element: document.getElementById('menu') },
-      { id: 'blog', element: document.getElementById('blog') },
-      { id: 'run-club', element: document.getElementById('run-club') }
-    ].filter(Boolean);
-
-    // Create intersection observer for scroll spy
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setActiveLink(entry.target.id);
-          }
-        });
-      },
-      {
-        rootMargin: '-40% 0px -55% 0px',
-        threshold: 0
-      }
-    );
-
-    // Observe all sections
-    sections.forEach(({ element }) => {
-      if (element) {
-        observerRef.current?.observe(element);
-      }
-    });
-
-    // Cleanup
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, []);
-
-  // Close mobile menu when route changes
-  useEffect(() => {
-    const handleHashChange = () => {
-      setIsMobileMenuOpen(false);
-    };
-
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+  // Get active link based on current pathname
+  const getActiveLink = (path: string) => {
+    if (path === '/') return pathname === '/';
+    return pathname.startsWith(path);
+  };
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
@@ -72,21 +29,6 @@ export default function NavBar() {
       document.body.style.overflow = 'unset';
     };
   }, [isMobileMenuOpen]);
-
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-    setIsMobileMenuOpen(false);
-  };
-
-  const getActiveLinkStyle = (linkId: string) => {
-    if (activeLink === linkId) {
-      return 'bg-[var(--brand-pink)]/15 text-slate-900 ring-1 ring-[var(--brand-pink)]/40';
-    }
-    return 'text-slate-900 hover:text-slate-700';
-  };
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md shadow-lg border-b border-brandPink/10">
@@ -115,12 +57,8 @@ export default function NavBar() {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
             <Link
-              href="#about"
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('about');
-              }}
-              className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 hover:underline hover:underline-offset-4 hover:decoration-[var(--brand-pink)] ${getActiveLinkStyle('about')}`}
+              href="/about"
+              className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 hover:underline hover:underline-offset-4 hover:decoration-[var(--brand-pink)] ${getActiveLink('/about') ? 'bg-[var(--brand-pink)]/15 text-slate-900 ring-1 ring-[var(--brand-pink)]/40' : 'text-slate-900 hover:text-slate-700'}`}
             >
               About
             </Link>
@@ -129,23 +67,15 @@ export default function NavBar() {
             <DesktopMenuDropdown />
 
             <Link
-              href="#blog"
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('blog');
-              }}
-              className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 hover:underline hover:underline-offset-4 hover:decoration-[var(--brand-green)] ${getActiveLinkStyle('blog')}`}
+              href="/blog"
+              className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 hover:underline hover:underline-offset-4 hover:decoration-[var(--brand-green)] ${getActiveLink('/blog') ? 'bg-[var(--brand-green)]/15 text-slate-900 ring-1 ring-[var(--brand-green)]/40' : 'text-slate-900 hover:text-slate-700'}`}
             >
               Blog
             </Link>
 
             <Link
-              href="#run-club"
-              onClick={(e) => {
-                e.preventDefault();
-                scrollToSection('run-club');
-              }}
-              className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 hover:underline hover:underline-offset-4 hover:decoration-[var(--brand-pink)] ${getActiveLinkStyle('run-club')}`}
+              href="/run-club"
+              className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 hover:underline hover:underline-offset-4 hover:decoration-[var(--brand-pink)] ${getActiveLink('/run-club') ? 'bg-[var(--brand-pink)]/15 text-slate-900 ring-1 ring-[var(--brand-pink)]/40' : 'text-slate-900 hover:text-slate-700'}`}
             >
               Run Club
             </Link>
@@ -189,19 +119,20 @@ export default function NavBar() {
           >
             <div className="px-6 py-4 space-y-2">
               {[
-                { id: 'about', label: 'About Us', icon: '👥' },
-                { id: 'menu', label: 'Menu', icon: '🥗' },
-                { id: 'blog', label: 'Blog', icon: '📝' },
-                { id: 'run-club', label: 'Run Club', icon: '🏃‍♀️' }
+                { id: 'about', label: 'About Us', icon: '👥', href: '/about' },
+                { id: 'menu', label: 'Menu', icon: '🥗', href: '/menu' },
+                { id: 'blog', label: 'Blog', icon: '📝', href: '/blog' },
+                { id: 'run-club', label: 'Run Club', icon: '🏃‍♀️', href: '/run-club' }
               ].map((item) => (
-                <button
+                <Link
                   key={item.id}
-                  onClick={() => scrollToSection(item.id)}
+                  href={item.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
                   className="w-full text-left px-4 py-3 rounded-lg text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors duration-200 font-medium flex items-center gap-3"
                 >
                   <span className="text-lg">{item.icon}</span>
                   {item.label}
-                </button>
+                </Link>
               ))}
             </div>
           </motion.div>
