@@ -29,15 +29,15 @@ export default function Footer() {
           >
             <h4 className="text-sm font-semibold text-gray-900 mb-3">Contact</h4>
             <div className="space-y-2">
-              <a 
-                href="mailto:anotherbowlipswich@gmail.com" 
+              <Link
+                href="/contact"
                 className="block text-sm text-gray-600 hover:text-primary transition-colors duration-200"
               >
-                anotherbowlipswich@gmail.com
-              </a>
-              <p className="text-sm text-gray-600">
+                Contact Page
+              </Link>
+              <Link href="/contact" className="block text-sm text-gray-600 hover:text-primary transition-colors duration-200">
                 Ipswich, Suffolk
-              </p>
+              </Link>
             </div>
           </motion.div>
 

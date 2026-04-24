@@ -1,9 +1,10 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 
-export default function Hero({ toggleSection }: { toggleSection: (section: string) => void }) {
+export default function Hero() {
   return (
     <section className="relative min-h-[540px] lg:min-h-[680px] flex flex-col items-center justify-center overflow-hidden hero-stable scroll-mt-20 md:scroll-mt-24">
       {/* Branded Background */}
@@ -109,13 +110,13 @@ export default function Hero({ toggleSection }: { toggleSection: (section: strin
             className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6"
           >
             {[
-              { id: 'about', label: 'About Us', icon: '👥' },
-              { id: 'menu', label: 'Our Menu', icon: '🥗' },
-              { id: 'blog', label: 'Blog', icon: '📝' },
-              { id: 'run-club', label: 'Run Club', icon: '🏃‍♀️' }
+              { href: '/about', label: 'About Us', icon: '👥' },
+              { href: '/menu', label: 'Our Menu', icon: '🥗' },
+              { href: '/blog', label: 'Blog', icon: '📝' },
+              { href: '/run-club', label: 'Run Club', icon: '🏃‍♀️' }
             ].map((item, index) => (
               <motion.div
-                key={item.id}
+                key={item.href}
                 className="flex justify-center"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -123,8 +124,8 @@ export default function Hero({ toggleSection }: { toggleSection: (section: strin
                 whileHover={{ scale: 1.02 }}
                 whileFocus={{ scale: 1.005, y: -1 }}
               >
-                <button
-                  onClick={() => toggleSection(item.id)}
+                <Link
+                  href={item.href}
                   className="block relative overflow-hidden rounded-xl px-6 py-4 font-bold transition-all duration-300 ease-out text-sm sm:text-base cursor-pointer min-h-[60px] min-w-[140px] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brandPink/50 bg-white/95 backdrop-blur-sm border border-slate-200/60 shadow-lg hover:shadow-xl hover:scale-105 hover:border-brandPink/30 text-slate-800 hover:text-slate-900 group"
                   aria-label={`${item.label} - Click to explore ${item.label.toLowerCase()}`}
                 >
@@ -137,7 +138,7 @@ export default function Hero({ toggleSection }: { toggleSection: (section: strin
                     transition={{ duration: 0.6 }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-br from-white/80 to-transparent rounded-xl" />
-                </button>
+                </Link>
               </motion.div>
             ))}
           </motion.div>

@@ -1,22 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import DesktopMenuDropdown from './DesktopMenuDropdown';
 
-export default function NavBar({ toggleSection }: { toggleSection: (section: string) => void }) {
+export default function NavBar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  // Close mobile menu when hash changes
-  useEffect(() => {
-    const handleHashChange = () => {
-      setIsMobileMenuOpen(false);
-    };
-
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
@@ -36,7 +27,7 @@ export default function NavBar({ toggleSection }: { toggleSection: (section: str
       <div className="max-w-6xl mx-auto px-6 sm:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Logo */}
-          <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3">
             <motion.div
               whileHover={{ scale: 1.05, rotate: 1 }}
               whileTap={{ scale: 0.95 }}
@@ -50,36 +41,43 @@ export default function NavBar({ toggleSection }: { toggleSection: (section: str
                 className="w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-md" 
               />
             </motion.div>
-                            <h1 className="text-xl sm:text-2xl font-black tracking-wider uppercase text-slate-900">
-                  Another Bowl
-                </h1>
-              </div>
+            <h1 className="text-xl sm:text-2xl font-black tracking-wider uppercase text-slate-900">
+              Another Bowl
+            </h1>
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
-            <button
-              onClick={() => toggleSection('about')}
+            <Link
+              href="/about"
               className="px-3 py-2 rounded-lg font-medium transition-all duration-200 hover:underline hover:underline-offset-4 hover:decoration-[var(--brand-pink)] text-slate-900 hover:text-slate-700"
             >
               About
-            </button>
+            </Link>
 
             {/* Menu Dropdown */}
             <DesktopMenuDropdown />
 
-            <button
-              onClick={() => toggleSection('blog')}
+            <Link
+              href="/blog"
               className="px-3 py-2 rounded-lg font-medium transition-all duration-200 hover:underline hover:underline-offset-4 hover:decoration-[var(--brand-green)] text-slate-900 hover:text-slate-700"
             >
               Blog
-            </button>
+            </Link>
 
-            <button
-              onClick={() => toggleSection('run-club')}
+            <Link
+              href="/run-club"
               className="px-3 py-2 rounded-lg font-medium transition-all duration-200 hover:underline hover:underline-offset-4 hover:decoration-[var(--brand-pink)] text-slate-900 hover:text-slate-700"
             >
               Run Club
-            </button>
+            </Link>
+
+            <Link
+              href="/contact"
+              className="px-3 py-2 rounded-lg font-medium transition-all duration-200 hover:underline hover:underline-offset-4 hover:decoration-[var(--brand-green)] text-slate-900 hover:text-slate-700"
+            >
+              Contact
+            </Link>
           </nav>
 
           {/* Mobile Menu Button */}
@@ -120,22 +118,21 @@ export default function NavBar({ toggleSection }: { toggleSection: (section: str
           >
             <div className="px-6 py-4 space-y-2">
               {[
-                { id: 'about', label: 'About Us', icon: '👥' },
-                { id: 'menu', label: 'Our Menu', icon: '🥗' },
-                { id: 'blog', label: 'Blog', icon: '📝' },
-                { id: 'run-club', label: 'Run Club', icon: '🏃‍♀️' }
+                { href: '/about', label: 'About Us', icon: '👥' },
+                { href: '/menu', label: 'Our Menu', icon: '🥗' },
+                { href: '/blog', label: 'Blog', icon: '📝' },
+                { href: '/run-club', label: 'Run Club', icon: '🏃‍♀️' },
+                { href: '/contact', label: 'Contact', icon: '📍' }
               ].map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    toggleSection(item.id);
-                    setIsMobileMenuOpen(false);
-                  }}
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
                   className="w-full text-left px-4 py-3 rounded-lg text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors duration-200 font-medium flex items-center gap-3"
                 >
                   <span className="text-lg">{item.icon}</span>
                   {item.label}
-                </button>
+                </Link>
               ))}
             </div>
           </motion.div>

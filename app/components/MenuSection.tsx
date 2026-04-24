@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { MENU, formatPrice, type MenuCategory, type MenuItem } from '../data/menu';
+import { useEffect, useState } from 'react';
+import { MENU, formatPrice } from '../data/menu';
 
 export default function MenuSection() {
   const [activeCategory, setActiveCategory] = useState<string>(MENU[0].id);
-  const tabListRef = useRef<HTMLDivElement>(null);
 
   const handleCategoryChange = (categoryId: string) => {
     setActiveCategory(categoryId);
@@ -19,6 +18,30 @@ export default function MenuSection() {
   };
 
   const currentCategory = MENU.find(cat => cat.id === activeCategory)!;
+
+  useEffect(() => {
+    const syncCategoryFromHash = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (!hash) return;
+
+      const matchingCategory = MENU.find((category) => category.id === hash);
+      if (!matchingCategory) return;
+
+      setActiveCategory(matchingCategory.id);
+
+      requestAnimationFrame(() => {
+        const target = document.getElementById(matchingCategory.id);
+        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    };
+
+    syncCategoryFromHash();
+    window.addEventListener('hashchange', syncCategoryFromHash);
+
+    return () => {
+      window.removeEventListener('hashchange', syncCategoryFromHash);
+    };
+  }, []);
 
   // Get theme-based background class
   const getThemeBackground = (theme?: string) => {
@@ -51,7 +74,6 @@ export default function MenuSection() {
 
         {/* Sticky Tab Bar */}
         <div
-          ref={tabListRef}
           className="sticky top-[var(--menu-sticky-top,64px)] z-20 bg-white/95 backdrop-blur-sm border-b border-gray-200 mb-8"
           role="tablist"
           aria-label="Menu categories"

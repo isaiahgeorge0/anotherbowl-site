@@ -86,7 +86,7 @@ export default function DesktopMenuDropdown() {
   };
 
   const getCategoryHash = (categoryId: string) => {
-    return `#${categoryId}`;
+    return `/menu#${categoryId}`;
   };
 
   const getThemeColor = (theme?: string) => {
