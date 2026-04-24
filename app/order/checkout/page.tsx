@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import NavBar from '@/components/NavBar';
@@ -10,11 +10,11 @@ import type { BasketItem, CheckoutDetails, CheckoutOrderType } from '@/types/ord
 
 type FormErrors = Partial<Record<keyof CheckoutDetails, string>>;
 const primaryButtonClass =
-  'inline-flex items-center justify-center px-6 py-3 rounded-xl font-bold text-white bg-slate-900 hover:bg-slate-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400';
+  'inline-flex items-center justify-center px-6 py-4 rounded-xl font-bold text-white bg-slate-900 shadow-sm transition-all duration-200 hover:bg-slate-800 hover:shadow-md active:scale-[0.98] active:bg-slate-950 active:shadow-inner focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-400';
 const secondaryButtonClass =
-  'px-4 py-2 rounded-lg border border-gray-300 text-gray-800 bg-white hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300';
+  'px-4 py-2 rounded-lg border border-gray-300 text-gray-800 bg-white shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow-md active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-400';
 const inputClass =
-  'w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary';
+  'w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 bg-white shadow-sm transition-[border-color,box-shadow] duration-200 placeholder:text-gray-400 hover:border-gray-400 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400/50 focus:ring-offset-0';
 const noticeBoxClass = 'rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900';
 
 export default function CheckoutPage() {
@@ -31,10 +31,25 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [stickySubmitEntered, setStickySubmitEntered] = useState(false);
+  const prevCheckoutBasketLenRef = useRef(0);
 
   useEffect(() => {
     setBasket(getBasket());
   }, []);
+
+  useEffect(() => {
+    const len = basket.length;
+    const wasEmpty = prevCheckoutBasketLenRef.current === 0;
+    if (len > 0 && wasEmpty) {
+      setStickySubmitEntered(false);
+      const t = window.setTimeout(() => setStickySubmitEntered(true), 20);
+      prevCheckoutBasketLenRef.current = len;
+      return () => clearTimeout(t);
+    }
+    if (len === 0) setStickySubmitEntered(false);
+    prevCheckoutBasketLenRef.current = len;
+  }, [basket.length]);
 
   const subtotal = useMemo(
     () => basket.reduce((sum, entry) => sum + entry.item.price * entry.quantity, 0),
@@ -171,14 +186,14 @@ export default function CheckoutPage() {
 
               <div>
                 <p className="text-sm font-semibold text-gray-900 mb-2">Order type</p>
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-3" role="group" aria-label="Order type">
                   <button
                     type="button"
                     onClick={() => handleOrderTypeChange('collection')}
-                    className={`min-h-[44px] min-w-[44px] px-5 rounded-lg border font-semibold ${
+                    className={`min-h-[44px] min-w-[44px] rounded-lg border px-5 font-semibold shadow-sm transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 active:scale-[0.98] ${
                       details.orderType === 'collection'
-                        ? 'border-slate-900 text-white bg-slate-900'
-                        : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                        ? 'border-slate-900 bg-slate-900 text-white shadow-md ring-1 ring-slate-900/20'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-slate-50 hover:shadow-md'
                     }`}
                   >
                     Collection
@@ -186,10 +201,10 @@ export default function CheckoutPage() {
                   <button
                     type="button"
                     onClick={() => handleOrderTypeChange('table')}
-                    className={`min-h-[44px] min-w-[44px] px-5 rounded-lg border font-semibold ${
+                    className={`min-h-[44px] min-w-[44px] rounded-lg border px-5 font-semibold shadow-sm transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 active:scale-[0.98] ${
                       details.orderType === 'table'
-                        ? 'border-slate-900 text-white bg-slate-900'
-                        : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                        ? 'border-slate-900 bg-slate-900 text-white shadow-md ring-1 ring-slate-900/20'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-slate-50 hover:shadow-md'
                     }`}
                   >
                     Table
@@ -262,9 +277,22 @@ export default function CheckoutPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className={`${primaryButtonClass} hidden min-h-[44px] w-full disabled:opacity-60 md:inline-flex`}
+                aria-busy={submitting}
+                className={`${primaryButtonClass} hidden min-h-[44px] w-full md:inline-flex ${
+                  submitting ? 'cursor-wait opacity-80' : ''
+                }`}
               >
-                {submitting ? 'Placing order...' : 'Place order'}
+                {submitting ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span
+                      className="h-4 w-4 shrink-0 rounded-full border-2 border-white/30 border-t-white animate-spin"
+                      aria-hidden
+                    />
+                    Placing order...
+                  </span>
+                ) : (
+                  'Place order'
+                )}
               </button>
               {submitError && (
                 <p className="hidden text-sm text-red-600 md:block">{submitError}</p>
@@ -276,7 +304,9 @@ export default function CheckoutPage() {
 
       {basket.length > 0 && (
         <div
-          className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 p-4 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] backdrop-blur-sm md:hidden pb-[max(1rem,env(safe-area-inset-bottom))]"
+          className={`fixed inset-x-0 bottom-0 z-40 border-t-2 border-slate-200/90 bg-white/95 p-5 shadow-[0_-10px_40px_-8px_rgba(15,23,42,0.12)] backdrop-blur-md transition-[transform,opacity] duration-300 ease-out will-change-transform md:hidden pb-[max(1rem,env(safe-area-inset-bottom))] ${
+            stickySubmitEntered ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
+          }`}
           role="region"
           aria-label="Place order"
         >
@@ -284,9 +314,20 @@ export default function CheckoutPage() {
             type="submit"
             form="checkout-form"
             disabled={submitting}
-            className={`${primaryButtonClass} min-h-[44px] w-full disabled:opacity-60`}
+            aria-busy={submitting}
+            className={`${primaryButtonClass} min-h-[44px] w-full ${submitting ? 'cursor-wait opacity-80' : ''}`}
           >
-            {submitting ? 'Placing order...' : 'Place order'}
+            {submitting ? (
+              <span className="inline-flex items-center gap-2">
+                <span
+                  className="h-4 w-4 shrink-0 rounded-full border-2 border-white/30 border-t-white animate-spin"
+                  aria-hidden
+                />
+                Placing order...
+              </span>
+            ) : (
+              'Place order'
+            )}
           </button>
           {submitError && <p className="mt-2 text-center text-sm text-red-600">{submitError}</p>}
         </div>
