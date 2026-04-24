@@ -60,21 +60,19 @@ export default function MenuSection() {
   };
 
   return (
-    <section className="py-12 sm:py-16 px-6 sm:px-8 bg-white">
-      <div className="max-w-6xl mx-auto">
+    <section className="bg-light px-6 py-12 sm:px-8 sm:py-16">
+      <div className="mx-auto max-w-6xl">
         {/* Section Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">
-            Our Menu
-          </h2>
-          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+        <div className="mb-12 text-center">
+          <h2 className="mb-4 text-3xl font-black text-stone-900 sm:text-4xl">Our Menu</h2>
+          <p className="mx-auto max-w-2xl text-lg text-stone-600">
             Fresh, nutritious food made with love. From hearty mains to refreshing drinks.
           </p>
         </div>
 
         {/* Sticky Tab Bar */}
         <div
-          className="sticky top-[var(--menu-sticky-top,64px)] z-20 bg-white/95 backdrop-blur-sm border-b border-gray-200 mb-8"
+          className="sticky top-[var(--menu-sticky-top,64px)] z-20 mb-8 border-b border-stone-200/70 bg-light/95 backdrop-blur-sm"
           role="tablist"
           aria-label="Menu categories"
         >
@@ -89,12 +87,12 @@ export default function MenuSection() {
                 onClick={() => handleCategoryChange(category.id)}
                 onKeyDown={(e) => handleKeyDown(e, category.id)}
                 className={`
-                  flex-shrink-0 px-6 py-4 font-semibold text-sm sm:text-base transition-all duration-200
-                  focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--brand-pink-hex)]
+                  flex-shrink-0 px-6 py-4 text-sm font-semibold transition-all duration-200 sm:text-base
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-pink-hex)] focus-visible:ring-offset-2
                   snap-start
                   ${activeCategory === category.id
-                    ? 'text-slate-900 border-b-2 border-[var(--brand-pink-hex)]'
-                    : 'text-slate-600 hover:text-slate-900 border-b-2 border-transparent hover:border-gray-300'
+                    ? 'border-b-2 border-primary text-stone-900'
+                    : 'border-b-2 border-transparent text-stone-600 hover:border-stone-300/80 hover:text-stone-900'
                   }
                 `}
               >
@@ -119,8 +117,8 @@ export default function MenuSection() {
           {/* Content */}
           <div className="relative z-10">
             {/* Category Title */}
-            <div className="text-center mb-8">
-              <h3 className="text-2xl sm:text-3xl font-bold text-slate-900">
+            <div className="mb-8 text-center">
+              <h3 className="text-2xl font-bold text-stone-900 sm:text-3xl">
                 {currentCategory.title}
               </h3>
             </div>
@@ -131,16 +129,16 @@ export default function MenuSection() {
                 <div
                   key={`${currentCategory.id}-${index}`}
                   data-testid={`menu-item-${currentCategory.id}-${index}`}
-                  className="menu-item-card bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:border-[var(--brand-pink-hex)] transition-all duration-200 focus-within:ring-2 focus-within:ring-[var(--brand-pink-hex)] focus-within:ring-offset-2"
+                  className="menu-item-card rounded-xl border border-stone-200/80 bg-light/90 p-6 shadow-sm transition-all duration-200 hover:border-primary/50 focus-within:ring-2 focus-within:ring-brandPink/40 focus-within:ring-offset-2"
                 >
                   {/* Item Header with Name and Prices */}
-                  <div className="flex items-start justify-between mb-3">
-                    <h4 className="font-semibold text-slate-900 text-lg leading-tight flex-1 pr-4">
+                  <div className="mb-3 flex items-start justify-between">
+                    <h4 className="flex-1 pr-4 text-lg font-semibold leading-tight text-stone-900">
                       {item.name}
                     </h4>
-                    <div className="flex flex-col items-end flex-shrink-0">
+                    <div className="flex flex-shrink-0 flex-col items-end">
                       {item.prices.map((price, priceIndex) => (
-                        <span key={priceIndex} className="font-bold text-slate-900 text-lg">
+                        <span key={priceIndex} className="text-lg font-bold text-stone-900">
                           {formatPrice(price)}
                         </span>
                       ))}
@@ -149,7 +147,7 @@ export default function MenuSection() {
 
                   {/* Description */}
                   {item.description && (
-                    <p className="text-slate-600 text-sm mb-3 leading-relaxed">
+                    <p className="mb-3 text-sm leading-relaxed text-stone-600">
                       {item.description}
                     </p>
                   )}
@@ -179,8 +177,8 @@ export default function MenuSection() {
 
                   {/* Notes */}
                   {item.notes && (
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                    <div className="mt-3 border-t border-stone-200/60 pt-3">
+                      <p className="text-xs font-medium leading-relaxed text-stone-500">
                         {item.notes}
                       </p>
                     </div>
@@ -192,7 +190,7 @@ export default function MenuSection() {
             {/* Empty State */}
             {currentCategory.items.length === 0 && (
               <div className="text-center py-12">
-                <p className="text-slate-500 text-lg">
+                <p className="text-lg text-stone-500">
                   No items found in this category.
                 </p>
               </div>

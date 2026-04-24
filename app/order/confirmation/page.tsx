@@ -8,16 +8,15 @@ import { getLastOrder } from '@/lib/orderStorage';
 import type { StoredOrder } from '@/types/order';
 
 const primaryButtonClass =
-  'inline-flex items-center justify-center px-5 py-3 rounded-lg font-bold text-white bg-slate-900 hover:bg-slate-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400';
+  'inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-3 font-bold text-white shadow-md transition-all duration-200 hover:bg-primary/90 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 focus:ring-offset-light active:scale-[0.98]';
 const secondaryButtonClass =
-  'inline-flex items-center justify-center px-5 py-3 rounded-lg border border-gray-300 text-gray-800 bg-white hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300';
-const noticeBoxClass = 'rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900';
+  'inline-flex items-center justify-center rounded-xl border border-stone-200/90 bg-light/90 px-5 py-3 text-stone-800 shadow-sm transition-all duration-200 hover:border-stone-300/80 hover:bg-light focus:outline-none focus:ring-2 focus:ring-stone-400/40 focus:ring-offset-2';
+const noticeBoxClass = 'rounded-xl border border-amber-200/80 bg-amber-50/90 p-4 text-amber-900/90';
 
 export default function OrderConfirmationPage() {
   const [order, setOrder] = useState<StoredOrder | null>(null);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
   const [total, setTotal] = useState<string | null>(null);
-
   useEffect(() => {
     setOrder(getLastOrder());
     const params = new URLSearchParams(window.location.search);
@@ -26,48 +25,54 @@ export default function OrderConfirmationPage() {
   }, []);
 
   return (
-    <div className="min-h-screen scroll-smooth bg-gradient-to-br from-light via-white to-light">
+    <div className="min-h-screen scroll-smooth bg-gradient-to-br from-light via-white/80 to-light">
       <NavBar />
       <main className="max-w-3xl mx-auto px-6 sm:px-8 py-12 sm:py-16">
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 sm:p-8">
-          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 mb-3">Order Confirmation</h1>
+        <div className="rounded-2xl border border-stone-200/70 bg-light/90 p-6 shadow-[0_8px_32px_rgba(28,26,24,0.06)] sm:p-8">
+          <h1 className="mb-3 text-3xl font-black text-stone-900 sm:text-4xl">Order Confirmation</h1>
+          {(orderNumber || order) && (
+            <div className="mb-5 rounded-xl border border-emerald-200/70 bg-emerald-50/80 px-4 py-3 text-emerald-900/90 shadow-sm">
+              <p className="text-sm font-semibold">Thank you — we&apos;ve received your order.</p>
+              <p className="mt-0.5 text-xs text-emerald-800/80">You&apos;ll see the details below.</p>
+            </div>
+          )}
           <div className={`${noticeBoxClass} mb-6`}>
             <p className="text-sm font-semibold">Payment integration coming soon.</p>
             <p className="text-sm mt-1">This confirmation is part of the pre-launch test flow.</p>
           </div>
 
           {orderNumber ? (
-            <div className="rounded-lg border border-gray-200 p-4 bg-white space-y-3">
-              <p className="text-gray-900">
+            <div className="space-y-3 rounded-xl border border-stone-200/75 bg-mint/20 p-4">
+              <p className="text-stone-900">
                 <span className="font-semibold">Order number:</span> {orderNumber}
               </p>
-              <p className="text-gray-900">
+              <p className="text-stone-900">
                 <span className="font-semibold">Payment:</span> Payment integration coming soon
               </p>
-              <p className="text-gray-900">
+              <p className="text-stone-900">
                 <span className="font-semibold">Total:</span> GBP {total ?? '0.00'}
               </p>
             </div>
           ) : order ? (
-            <div className="rounded-lg border border-gray-200 p-4 bg-white space-y-3">
-              <p className="text-gray-900">
+            <div className="space-y-3 rounded-xl border border-stone-200/75 bg-mint/20 p-4">
+              <p className="text-stone-900">
                 <span className="font-semibold">Order number:</span> {order.orderNumber}
               </p>
-              <p className="text-gray-900">
+              <p className="text-stone-900">
                 <span className="font-semibold">Name:</span> {order.checkout.customerName}
               </p>
-              <p className="text-gray-900">
+              <p className="text-stone-900">
                 <span className="font-semibold">Order type:</span> {order.checkout.orderType}
               </p>
-              <p className="text-gray-900">
+              <p className="text-stone-900">
                 <span className="font-semibold">Payment:</span> Payment integration coming soon
               </p>
-              <p className="text-gray-900">
+              <p className="text-stone-900">
                 <span className="font-semibold">Total:</span> GBP {order.subtotal.toFixed(2)}
               </p>
             </div>
           ) : (
-            <p className="text-gray-700">No recent order found in local storage.</p>
+            <p className="text-stone-600">No recent order found in local storage.</p>
           )}
 
           <div className="mt-6 flex flex-wrap gap-3">

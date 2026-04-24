@@ -65,9 +65,9 @@ export default function RootLayout({
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/site.webmanifest" />
         
-        {/* Theme Color */}
-        <meta name="theme-color" content="#FF3E86" />
-        <meta name="msapplication-TileColor" content="#FF3E86" />
+        {/* Theme Color — deep espresso/ink; matches café ink text */}
+        <meta name="theme-color" content="#1C1A18" />
+        <meta name="msapplication-TileColor" content="#1C1A18" />
         
         {/* Additional Meta Tags */}
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -83,7 +83,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
         {children}
       </body>

@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 export default function Footer() {
   return (
-    <footer className="bg-white border-t border-gray-200 mt-16">
+    <footer className="mt-16 border-t border-stone-200/70 bg-light">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
           {/* Brand Section */}
@@ -14,8 +14,8 @@ export default function Footer() {
             transition={{ duration: 0.5 }}
             className="text-center md:text-left"
           >
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Another Bowl</h3>
-            <p className="text-sm text-gray-600 leading-relaxed">
+            <h3 className="text-lg font-bold text-stone-900 mb-2">Another Bowl</h3>
+            <p className="text-sm leading-relaxed text-stone-600">
               Fresh food. Clean energy. Weekly run club. Made in Ipswich.
             </p>
           </motion.div>
@@ -27,15 +27,15 @@ export default function Footer() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-center md:text-left"
           >
-            <h4 className="text-sm font-semibold text-gray-900 mb-3">Contact</h4>
+            <h4 className="text-sm font-semibold text-stone-900 mb-3">Contact</h4>
             <div className="space-y-2">
               <Link
                 href="/contact"
-                className="block text-sm text-gray-600 hover:text-primary transition-colors duration-200"
+                className="block text-sm text-stone-600 transition-colors duration-200 hover:text-primary"
               >
                 Contact Page
               </Link>
-              <Link href="/contact" className="block text-sm text-gray-600 hover:text-primary transition-colors duration-200">
+              <Link href="/contact" className="block text-sm text-stone-600 transition-colors duration-200 hover:text-primary">
                 Ipswich, Suffolk
               </Link>
             </div>
@@ -48,13 +48,13 @@ export default function Footer() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-center md:text-left"
           >
-            <h4 className="text-sm font-semibold text-gray-900 mb-3">Follow Us</h4>
+            <h4 className="text-sm font-semibold text-stone-900 mb-3">Follow Us</h4>
             <div className="flex justify-center md:justify-start">
               <Link 
                 href="https://instagram.com/another.bowl" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary/10 to-primary/20 rounded-full hover:from-primary/20 hover:to-primary/30 transition-all duration-300 group shadow-md hover:shadow-lg"
+                className="group inline-flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-primary/8 to-primary/16 shadow-sm transition-all duration-300 hover:from-primary/15 hover:to-primary/25 hover:shadow-md"
                 aria-label="Follow us on Instagram"
               >
                 <svg 
@@ -75,9 +75,9 @@ export default function Footer() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="border-t border-gray-200 mt-8 pt-6"
+          className="mt-8 border-t border-stone-200/70 pt-6"
         >
-          <div className="flex flex-col sm:flex-row justify-between items-center text-sm text-gray-500">
+          <div className="flex flex-col items-center justify-between text-sm text-stone-500 sm:flex-row">
             <p>&copy; 2025 Another Bowl. All rights reserved.</p>
             <div className="flex space-x-4 mt-2 sm:mt-0">
               <Link href="/privacy" className="hover:text-primary transition-colors duration-200">

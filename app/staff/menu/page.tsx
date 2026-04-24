@@ -9,12 +9,12 @@ import { supabaseServer } from '@/lib/supabaseServer';
 import type { StaffCategory, StaffProduct } from '@/types/menuManagement';
 
 const primaryButtonClass =
-  'px-4 py-2 rounded-lg font-semibold text-white bg-slate-900 hover:bg-slate-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400';
+  'rounded-xl bg-primary px-4 py-2 font-semibold text-white shadow-md transition-all duration-200 hover:bg-primary/90 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 focus:ring-offset-light active:scale-[0.98]';
 const secondaryButtonClass =
-  'px-4 py-2 rounded-lg border border-gray-300 text-gray-800 bg-white hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300';
+  'rounded-xl border border-stone-200/90 bg-light/90 px-4 py-2 text-stone-800 shadow-sm transition-all duration-200 hover:border-stone-300/80 hover:bg-light focus:outline-none focus:ring-2 focus:ring-stone-400/40 focus:ring-offset-2';
 const inputClass =
-  'w-full rounded-lg border border-gray-400 bg-white px-3 py-2 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary';
-const noticeBoxClass = 'rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900';
+  'w-full rounded-lg border border-stone-200/90 bg-light/90 px-3 py-2 font-medium text-stone-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25';
+const noticeBoxClass = 'rounded-xl border border-amber-200/80 bg-amber-50/90 p-4 text-amber-900/90';
 
 type ProductDraft = {
   name: string;
@@ -251,7 +251,7 @@ export default function StaffMenuPage() {
       <div className="min-h-screen scroll-smooth bg-gradient-to-br from-light via-white to-light">
         <NavBar />
         <main className="max-w-6xl mx-auto px-6 sm:px-8 py-12 sm:py-16">
-          <p className="text-gray-700">Checking staff session...</p>
+          <p className="text-stone-600">Checking staff session...</p>
         </main>
         <Footer />
       </div>
@@ -266,9 +266,9 @@ export default function StaffMenuPage() {
     <div className="min-h-screen scroll-smooth bg-gradient-to-br from-light via-white to-light">
       <NavBar />
       <main className="max-w-6xl mx-auto px-6 sm:px-8 py-12 sm:py-16">
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 sm:p-8">
+        <div className="rounded-2xl border border-stone-200/70 bg-light/90 p-6 shadow-[0_8px_32px_rgba(28,26,24,0.06)] sm:p-8">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-3xl sm:text-4xl font-black text-gray-900">Staff Menu Management</h1>
+            <h1 className="text-3xl font-black text-stone-900 sm:text-4xl">Staff Menu Management</h1>
             <StaffLogoutButton className={secondaryButtonClass} />
           </div>
           <div className={`${noticeBoxClass} mb-6`}>
@@ -283,8 +283,8 @@ export default function StaffMenuPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
-            <form onSubmit={submitNewCategory} className="rounded-xl border border-gray-200 p-4 space-y-3">
-              <h2 className="text-lg font-bold text-gray-900">Add Category</h2>
+            <form onSubmit={submitNewCategory} className="space-y-3 rounded-xl border border-stone-200/80 p-4">
+              <h2 className="text-lg font-bold text-stone-900">Add Category</h2>
               <input
                 value={newCategoryName}
                 onChange={(event) => setNewCategoryName(event.target.value)}
@@ -304,8 +304,8 @@ export default function StaffMenuPage() {
               </button>
             </form>
 
-            <form onSubmit={submitNewProduct} className="rounded-xl border border-gray-200 p-4 space-y-3">
-              <h2 className="text-lg font-bold text-gray-900">Add Product</h2>
+            <form onSubmit={submitNewProduct} className="space-y-3 rounded-xl border border-stone-200/80 p-4">
+              <h2 className="text-lg font-bold text-stone-900">Add Product</h2>
               <input
                 value={newProduct.name}
                 onChange={(event) => setNewProduct((prev) => ({ ...prev, name: event.target.value }))}
@@ -333,7 +333,7 @@ export default function StaffMenuPage() {
                   </option>
                 ))}
               </select>
-              <label className="flex items-center gap-2 text-sm text-gray-800 font-medium">
+              <label className="flex items-center gap-2 text-sm font-medium text-stone-800">
                 <input
                   type="checkbox"
                   checked={newProduct.is_active}
@@ -350,15 +350,18 @@ export default function StaffMenuPage() {
           </div>
 
           {error && <p className="text-red-600 mb-4">{error}</p>}
-          {loading && <p className="text-gray-600 mb-4">Loading menu catalog...</p>}
+          {loading && <p className="mb-4 text-stone-600">Loading menu catalog...</p>}
 
           <div className="space-y-6">
             {productsByCategory.map(({ category, products: categoryProducts }) => (
-              <section key={category.id} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 sm:p-5">
+              <section
+                key={category.id}
+                className="rounded-xl border border-stone-200/75 bg-mint/20 p-4 sm:p-5"
+              >
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">{category.name}</h2>
-                    <p className="text-sm text-gray-600">
+                    <h2 className="text-xl font-bold text-stone-900">{category.name}</h2>
+                    <p className="text-sm text-stone-600">
                       Order: {category.display_order} | Products: {categoryProducts.length}
                     </p>
                   </div>
@@ -382,27 +385,27 @@ export default function StaffMenuPage() {
                 </div>
 
                 {categoryProducts.length === 0 ? (
-                  <p className="text-sm text-gray-600">No products in this category.</p>
+                  <p className="text-sm text-stone-600">No products in this category.</p>
                 ) : (
                   <div className="space-y-3">
                     {categoryProducts.map((product) => (
                       <article
                         key={product.id}
-                        className={`rounded-xl border bg-white p-4 ${
+                        className={`rounded-xl border bg-light/90 p-4 ${
                           product.is_active
                             ? 'border-emerald-200'
-                            : 'border-gray-300 opacity-80'
+                            : 'border-stone-300 opacity-80'
                         }`}
                       >
                         <div className="flex flex-wrap items-center gap-3">
                           <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-gray-900 truncate">{product.name}</p>
-                            <p className="text-sm text-gray-700">
+                            <p className="truncate font-semibold text-stone-900">{product.name}</p>
+                            <p className="text-sm text-stone-700">
                               GBP {Number(product.price).toFixed(2)} | {category.name}
                             </p>
-                            <p className="text-xs text-gray-500">{product.id}</p>
+                            <p className="text-xs text-stone-500">{product.id}</p>
                           </div>
-                          <label className="flex items-center gap-2 text-sm text-gray-800 font-medium">
+                          <label className="flex items-center gap-2 text-sm font-medium text-stone-800">
                             <input
                               type="checkbox"
                               checked={product.is_active}
@@ -427,8 +430,8 @@ export default function StaffMenuPage() {
 
       {editingProduct && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-xl">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Edit Product</h2>
+          <div className="w-full max-w-lg rounded-xl border border-stone-200/80 bg-light/95 p-6 shadow-xl">
+            <h2 className="mb-4 text-xl font-bold text-stone-900">Edit Product</h2>
             <div className="space-y-3">
               <input
                 value={editDraft.name}
@@ -454,7 +457,7 @@ export default function StaffMenuPage() {
                   </option>
                 ))}
               </select>
-              <label className="flex items-center gap-2 text-sm text-gray-800 font-medium">
+              <label className="flex items-center gap-2 text-sm font-medium text-stone-800">
                 <input
                   type="checkbox"
                   checked={editDraft.is_active}

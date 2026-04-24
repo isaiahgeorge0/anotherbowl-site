@@ -184,3 +184,21 @@ export function isValidCollectionTimeForOrderNow(time: string | undefined): bool
   if (!time?.trim()) return false;
   return isValidCollectionTime(time, new Date());
 }
+
+/**
+ * When false, the shop is not accepting public online orders (e.g. closed day, no slots left today, or unconfigured day).
+ * Same check drives collection slot availability and blocking table orders while closed.
+ */
+export function isShopOpenForPublicOrderingNow(reference: Date = new Date()): boolean {
+  return getCollectionSlotsForReferenceNow(reference).slots.length > 0;
+}
+
+export function getPublicOrderingClosedMessage(
+  reference: Date = new Date()
+): string {
+  const r = getCollectionSlotsForReferenceNow(reference);
+  if (r.slots.length > 0) {
+    return '';
+  }
+  return r.message?.trim() || 'Online ordering is not available right now. Please try again when we are open.';
+}

@@ -16,9 +16,9 @@ import {
 import { PRINTER_ROUTING } from '@/lib/printerRouting';
 
 const primaryButtonClass =
-  'px-4 py-2 rounded-lg font-semibold text-white bg-slate-900 hover:bg-slate-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400 print:hidden';
+  'rounded-xl bg-primary px-4 py-2 font-semibold text-white shadow-md transition-all duration-200 hover:bg-primary/90 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 print:hidden';
 const secondaryButtonClass =
-  'px-4 py-2 rounded-lg border border-gray-300 text-gray-800 bg-white hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300 print:hidden';
+  'rounded-xl border border-stone-200/90 bg-light/90 px-4 py-2 text-stone-800 shadow-sm transition-all duration-200 hover:border-stone-300/80 hover:bg-light focus:outline-none focus:ring-2 focus:ring-stone-400/40 focus:ring-offset-2 print:hidden';
 
 export default function StaffOrderReceiptPage() {
   const router = useRouter();
@@ -132,9 +132,9 @@ export default function StaffOrderReceiptPage() {
 
   if (authLoading) {
     return (
-      <main className="min-h-screen bg-gray-100 p-4 sm:p-6">
+      <main className="min-h-screen bg-mint/30 p-4 sm:p-6">
         <div className="mx-auto w-full max-w-3xl">
-          <p className="text-gray-700">Checking staff session...</p>
+          <p className="text-stone-600">Checking staff session...</p>
         </div>
       </main>
     );
@@ -145,7 +145,7 @@ export default function StaffOrderReceiptPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 p-4 sm:p-6 print:bg-white print:p-0">
+    <main className="min-h-screen bg-mint/25 p-4 sm:p-6 print:bg-white print:p-0">
       <div className="mx-auto w-full max-w-3xl print:max-w-none">
         <div className="mb-4 flex items-center justify-end gap-2 print:hidden">
           <StaffLogoutButton className={secondaryButtonClass} />
@@ -157,11 +157,11 @@ export default function StaffOrderReceiptPage() {
           </button>
         </div>
 
-        {error && <p className="text-red-600 mb-3 print:hidden">{error}</p>}
-        {!receipt && !error && <p className="text-gray-700 print:hidden">Loading receipt...</p>}
+        {error && <p className="mb-3 text-red-600/90 print:hidden">{error}</p>}
+        {!receipt && !error && <p className="text-stone-600 print:hidden">Loading receipt...</p>}
         {receipt && (
           <>
-            <p className="mb-3 text-xs text-gray-600 print:hidden">
+            <p className="mb-3 text-xs text-stone-500 print:hidden">
               Document: {documentType.replace('_', ' ')} | Route target: {PRINTER_ROUTING[documentType]}
             </p>
             {documentType === 'kitchen_ticket' && printableOrder ? (

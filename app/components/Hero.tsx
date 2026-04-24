@@ -11,7 +11,7 @@ export default function Hero() {
       <div className="absolute inset-0 section-brand-gradient" />
       
       {/* Animated Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-light to-mint/20">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-light to-mint/25">
         <motion.div
           className="absolute inset-0 opacity-30"
           animate={{
@@ -23,7 +23,8 @@ export default function Hero() {
             repeatType: 'reverse',
           }}
           style={{
-            backgroundImage: 'radial-gradient(circle at 20% 80%, #FF3E86 0%, transparent 50%), radial-gradient(circle at 80% 20%, #C8F6BA 0%, transparent 50%)',
+            backgroundImage:
+              'radial-gradient(circle at 20% 80%, rgba(163, 123, 98, 0.35) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(138, 148, 128, 0.3) 0%, transparent 50%)',
           }}
         />
       </div>
@@ -85,7 +86,7 @@ export default function Hero() {
         <div className="relative z-20 w-full max-w-6xl mx-auto px-6 sm:px-8 mb-16">
           {/* Subtle Brand Glow Behind Cards */}
           <div className="absolute inset-0 -z-10 flex justify-center items-center">
-            <div className="w-96 h-32 bg-gradient-radial from-brandPink/8 via-brandGreen/5 to-transparent rounded-full blur-xl" />
+            <div className="h-32 w-96 rounded-full bg-gradient-radial from-brandPink/6 via-brandGreen/5 to-transparent blur-xl" />
           </div>
           
           <motion.div
@@ -126,13 +127,13 @@ export default function Hero() {
               >
                 <Link
                   href={item.href}
-                  className="block relative overflow-hidden rounded-xl px-6 py-4 font-bold transition-all duration-300 ease-out text-sm sm:text-base cursor-pointer min-h-[60px] min-w-[140px] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brandPink/50 bg-white/95 backdrop-blur-sm border border-slate-200/60 shadow-lg hover:shadow-xl hover:scale-105 hover:border-brandPink/30 text-slate-800 hover:text-slate-900 group"
+                  className="group relative block min-h-[60px] min-w-[140px] cursor-pointer overflow-hidden rounded-xl border border-stone-200/70 bg-white/95 px-6 py-4 text-sm font-bold text-stone-800 shadow-lg backdrop-blur-sm transition-all duration-300 ease-out hover:scale-105 hover:border-primary/25 hover:text-stone-900 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 sm:text-base"
                   aria-label={`${item.label} - Click to explore ${item.label.toLowerCase()}`}
                 >
                   <span className="text-lg sm:text-xl mb-2 block group-hover:scale-110 transition-transform duration-300">{item.icon}</span>
                   <span className="relative z-10">{item.label}</span>
                   <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-brandPink/10 via-brandGreen/5 to-transparent opacity-0 group-hover:opacity-100"
+                    className="absolute inset-0 bg-gradient-to-r from-brandPink/8 via-brandGreen/4 to-transparent opacity-0 group-hover:opacity-100"
                     initial={{ x: '-100%' }}
                     whileHover={{ x: '100%' }}
                     transition={{ duration: 0.6 }}

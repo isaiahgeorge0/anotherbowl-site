@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createOrder, listOrders } from '@/lib/ordersDb';
-import { isValidCollectionTimeForOrderNow } from '@/lib/openingHours';
+import { isCollectionTimeBookedOutForOrderNow } from '@/lib/collectionSlotCapacity';
+import {
+  isShopOpenForPublicOrderingNow,
+  isValidCollectionTimeForOrderNow,
+  getPublicOrderingClosedMessage,
+} from '@/lib/openingHours';
 import { getOnlineOrderingPausedFromDb } from '@/lib/orderingSettings';
 import { supabaseServer } from '@/lib/supabaseServer';
 import { getSupabaseServiceClient } from '@/lib/supabaseService';
@@ -319,10 +324,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Online ordering is paused.' }, { status: 403 });
     }
 
+    if (!isShopOpenForPublicOrderingNow()) {
+      return NextResponse.json(
+        { error: getPublicOrderingClosedMessage() },
+        { status: 400 }
+      );
+    }
+
     if (body.orderType === 'collection') {
       if (!isValidCollectionTimeForOrderNow(body.collectionTime)) {
         return NextResponse.json(
           { error: 'That collection time is not available. Choose a time within opening hours.' },
+          { status: 400 }
+        );
+      }
+      if (body.collectionTime && (await isCollectionTimeBookedOutForOrderNow(body.collectionTime))) {
+        return NextResponse.json(
+          { error: 'That collection time is full. Please choose another time.' },
           { status: 400 }
         );
       }

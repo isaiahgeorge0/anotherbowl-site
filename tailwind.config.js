@@ -3,12 +3,21 @@ module.exports = {
   content: ['./app/**/*.{js,ts,jsx,tsx}', './components/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-geist-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-geist-mono)', 'ui-monospace', 'monospace'],
+      },
       colors: {
-        primary: '#FF3E86',
-        light: '#FEE1E1',
-        accent: '#FFD700',
-        mint: '#C8F6BA',
-        berry: '#9400D3',
+        /* Warm terracotta / clay — main interactive accent */
+        primary: '#A37B66',
+        /* Cream page wash (pairs with --brand-cream) */
+        light: '#F4EFE8',
+        /* Muted warm brass (highlights) */
+        accent: '#B8956A',
+        /* Soft mint-sage wash */
+        mint: '#D4DFD0',
+        /* Boutique mauve for rare “berry” callouts */
+        berry: '#6B4E5D',
         brandPink: 'rgb(var(--brand-pink) / <alpha-value>)',
         brandGreen: 'rgb(var(--brand-green) / <alpha-value>)',
       },
@@ -17,7 +26,5 @@ module.exports = {
       },
     },
   },
-  plugins: [
-    require('@tailwindcss/line-clamp'),
-  ],
-}
+  plugins: [require('@tailwindcss/line-clamp')],
+};

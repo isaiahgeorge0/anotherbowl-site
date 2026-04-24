@@ -23,7 +23,7 @@ export default function NavBar() {
   }, [isMobileMenuOpen]);
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md shadow-lg border-b border-brandPink/10">
+    <header className="sticky top-0 z-50 w-full border-b border-stone-200/60 bg-light/90 shadow-[0_1px_0_rgba(28,26,24,0.04)] backdrop-blur-md">
       <div className="max-w-6xl mx-auto px-6 sm:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Logo */}
@@ -41,7 +41,7 @@ export default function NavBar() {
                 className="w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-md" 
               />
             </motion.div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-wider uppercase text-slate-900">
+            <h1 className="text-xl sm:text-2xl font-black tracking-wider uppercase text-stone-900">
               Another Bowl
             </h1>
           </Link>
@@ -50,7 +50,7 @@ export default function NavBar() {
           <nav className="hidden md:flex items-center gap-8">
             <Link
               href="/about"
-              className="px-3 py-2 rounded-lg font-medium transition-all duration-200 hover:underline hover:underline-offset-4 hover:decoration-[var(--brand-pink)] text-slate-900 hover:text-slate-700"
+              className="px-3 py-2 rounded-lg font-medium text-stone-900 transition-all duration-200 hover:text-stone-700 hover:underline hover:underline-offset-4 hover:decoration-[var(--clay-hex)]"
             >
               About
             </Link>
@@ -60,21 +60,21 @@ export default function NavBar() {
 
             <Link
               href="/blog"
-              className="px-3 py-2 rounded-lg font-medium transition-all duration-200 hover:underline hover:underline-offset-4 hover:decoration-[var(--brand-green)] text-slate-900 hover:text-slate-700"
+              className="px-3 py-2 rounded-lg font-medium text-stone-900 transition-all duration-200 hover:text-stone-700 hover:underline hover:underline-offset-4 hover:decoration-[var(--sage-hex)]"
             >
               Blog
             </Link>
 
             <Link
               href="/run-club"
-              className="px-3 py-2 rounded-lg font-medium transition-all duration-200 hover:underline hover:underline-offset-4 hover:decoration-[var(--brand-pink)] text-slate-900 hover:text-slate-700"
+              className="px-3 py-2 rounded-lg font-medium text-stone-900 transition-all duration-200 hover:text-stone-700 hover:underline hover:underline-offset-4 hover:decoration-[var(--clay-hex)]"
             >
               Run Club
             </Link>
 
             <Link
               href="/contact"
-              className="px-3 py-2 rounded-lg font-medium transition-all duration-200 hover:underline hover:underline-offset-4 hover:decoration-[var(--brand-green)] text-slate-900 hover:text-slate-700"
+              className="px-3 py-2 rounded-lg font-medium text-stone-900 transition-all duration-200 hover:text-stone-700 hover:underline hover:underline-offset-4 hover:decoration-[var(--sage-hex)]"
             >
               Contact
             </Link>
@@ -114,7 +114,7 @@ export default function NavBar() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="md:hidden bg-white border-t border-slate-200 overflow-hidden"
+            className="md:hidden overflow-hidden border-t border-stone-200/80 bg-light"
           >
             <div className="px-6 py-4 space-y-2">
               {[

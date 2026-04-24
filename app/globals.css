@@ -1,13 +1,26 @@
 @import "tailwindcss";
 
+/* Matte café foundation — brandPink / brandGreen R G B stay compatible with tailwind brandPink/brandGreen */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --brand-pink: 245 157 181; /* #F59DB5 */
-  --brand-green: 111 207 151; /* #6FCF97 */
-  --brand-pink-hex: #F6A9C5;
-  --brand-green-hex: #A7D8A5;
-  --brand-ink: #0E1A2B;
+  --background: #f4efe8;
+  --foreground: #1c1a18;
+  /* Plaster pink + sage/olive (use with rgba(var(--brand-pink) / a)) */
+  --brand-pink: 216 200 194;
+  --brand-green: 126 136 115;
+  /* Hex helpers for CSS utilities & legacy references */
+  --brand-pink-hex: #d8c8c2;
+  --brand-green-hex: #8f9a86;
+  --brand-ink: #1c1a18;
+  --brand-cream: #f4efe8;
+  /* Warm clay / terracotta (orbs, accents that aren’t the RGB tokens above) */
+  --brand-clay: 163 123 98;
+  --clay-hex: #a37b62;
+  --sage-hex: #7e8873;
+
+  /* Semantic UI (softer than default Tailwind chips where used) */
+  --ok: 110 150 120;
+  --warning: 210 165 95;
+  --danger: 200 120 120;
 }
 
 /*@theme inline { 
@@ -19,61 +32,65 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Keep light “café site” as default; dark OS users still get readable page bg */
+    --background: #f0ebe3;
+    --foreground: #1c1a18;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
   scroll-behavior: smooth;
 }
 
 .section-brand-gradient {
-  background: radial-gradient(1200px 600px at 30% -10%, rgba(var(--brand-pink)/0.25), transparent 60%),
-              radial-gradient(1000px 600px at 80% 10%, rgba(var(--brand-green)/0.18), transparent 70%);
+  background: radial-gradient(1200px 600px at 30% -10%, rgba(var(--brand-pink) / 0.3), transparent 60%),
+    radial-gradient(1000px 600px at 80% 10%, rgba(var(--brand-green) / 0.22), transparent 72%);
 }
 
-/* Ensure smooth gradient rendering across all devices and zoom levels */
+/* Match page “light” / cream (Tailwind) */
 .hero-fade-gradient {
-  background: linear-gradient(to top, #FEE1E1 0%, rgba(255, 255, 255, 0.8) 40%, rgba(255, 255, 255, 0.4) 70%, transparent 100%);
+  background: linear-gradient(
+    to top,
+    #f4efe8 0%,
+    rgba(255, 255, 255, 0.82) 40%,
+    rgba(255, 255, 255, 0.35) 72%,
+    transparent 100%
+  );
   -webkit-background-clip: padding-box;
   background-clip: padding-box;
   will-change: transform;
   transform: translateZ(0);
 }
 
-/* High-contrast card styling with accessibility support */
+/* Frosted card — boutique calm */
 .explore-card {
-  background: rgba(255, 255, 255, 0.98);
-  color: #1e293b; /* slate-800 equivalent */
-  border: 1px solid rgba(148, 163, 184, 0.6); /* slate-200/60 */
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.97);
+  color: var(--brand-ink);
+  border: 1px solid rgba(30, 26, 24, 0.08);
+  box-shadow: 0 10px 28px -6px rgba(28, 26, 24, 0.08), 0 2px 8px -2px rgba(28, 26, 24, 0.05);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  /* Ensure cards are readable over all hero image variants */
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
-  /* Micro-motion support */
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
   transition: all 0.2s ease-out;
   transform: translateZ(0);
 }
 
 .explore-card:hover {
   background: rgba(255, 255, 255, 1);
-  border-color: rgba(245, 157, 181, 0.4); /* brandPink/40 */
-  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15), 0 8px 16px -4px rgba(0, 0, 0, 0.1);
+  border-color: rgba(var(--brand-pink) / 0.4);
+  box-shadow: 0 18px 40px -10px rgba(28, 26, 24, 0.12), 0 4px 12px -2px rgba(28, 26, 24, 0.06);
 }
 
 .explore-card:focus {
-  outline: 2px solid rgb(111, 207, 151); /* brandGreen */
+  outline: 2px solid rgb(126, 136, 115);
   outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(111, 207, 151, 0.2), 0 20px 40px -12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 0 0 3px rgba(126, 136, 115, 0.2), 0 18px 40px -10px rgba(28, 26, 24, 0.1);
 }
 
 .explore-card:focus-visible {
-  outline: 2px solid rgb(111, 207, 151);
+  outline: 2px solid rgb(126, 136, 115);
   outline-offset: 2px;
 }
 
@@ -82,7 +99,7 @@ body {
   .explore-card {
     transition: none;
   }
-  
+
   .explore-card:hover {
     transform: none;
   }
@@ -113,55 +130,50 @@ body {
   .explore-card {
     min-height: 48px;
     min-width: 48px;
-    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 16px -4px rgba(28, 26, 24, 0.08);
   }
-  
+
   .explore-card:hover {
     transform: none;
-    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 16px -4px rgba(28, 26, 24, 0.08);
   }
 }
 
-/* Instagram button gradient text */
 .instagram-gradient-text {
-  background: linear-gradient(135deg, #F59DB5 0%, #6FCF97 100%);
+  background: linear-gradient(135deg, #d8c8c2 0%, #8f9a86 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   text-fill-color: transparent;
-  color: #F59DB5; /* Fallback color if gradient fails */
+  color: var(--brand-pink-hex);
 }
 
-/* Brand gradient utility */
 .brand-grad {
   background-image: linear-gradient(90deg, var(--brand-pink-hex), var(--brand-green-hex));
 }
 
-/* Menu tab styles */
 .menu-tab-active {
-  background: linear-gradient(90deg, var(--brand-pink-hex), var(--brand-green-hex));
+  background: linear-gradient(90deg, #c4a89e, #8f9a86);
   -webkit-background-clip: text;
-  background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
   text-fill-color: transparent;
-  color: var(--brand-ink); /* Fallback for accessibility */
+  color: var(--brand-ink);
 }
 
-/* Menu item card hover effects */
 .menu-item-card {
   transition: all 0.2s ease-out;
-  border: 1px solid #e5e7eb;
+  border: 1px solid rgba(30, 26, 24, 0.1);
 }
 
 .menu-item-card:hover,
 .menu-item-card:focus-within {
   border-color: var(--brand-pink-hex);
-  box-shadow: 0 4px 12px rgba(246, 169, 197, 0.15);
+  box-shadow: 0 4px 14px rgba(28, 26, 24, 0.08);
 }
 
-/* Dotted leaders for price alignment */
 .menu-item-leader {
-  background-image: radial-gradient(circle, #d1d5db 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(28, 26, 24, 0.18) 1px, transparent 1px);
   background-size: 4px 2px;
   background-repeat: repeat-x;
   background-position: center;
@@ -181,5 +193,3 @@ body {
 .scrollbar-gutter-stable {
   scrollbar-gutter: stable;
 }
-
-

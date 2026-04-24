@@ -12,12 +12,12 @@ import type { PrintableDocumentType } from '@/types/printing';
 
 const allStatuses: StaffOrderStatus[] = ['new', 'preparing', 'ready', 'completed', 'cancelled'];
 const primaryButtonClass =
-  'px-4 py-2 rounded-lg font-semibold text-white bg-slate-900 hover:bg-slate-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400';
+  'rounded-xl bg-primary px-4 py-2 font-semibold text-white shadow-md transition-all duration-200 hover:bg-primary/90 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 focus:ring-offset-light active:scale-[0.98]';
 const secondaryButtonClass =
-  'px-4 py-2 rounded-lg border border-gray-300 text-gray-800 bg-white hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300';
+  'rounded-xl border border-stone-200/90 bg-light/90 px-4 py-2 text-stone-800 shadow-sm transition-all duration-200 hover:border-stone-300/80 hover:bg-light focus:outline-none focus:ring-2 focus:ring-stone-400/40 focus:ring-offset-2';
 const selectClass =
-  'rounded-lg border border-gray-400 bg-white px-3 py-2 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary';
-const noticeBoxClass = 'rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900';
+  'rounded-lg border border-stone-200/90 bg-light/90 px-3 py-2 font-medium text-stone-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25';
+const noticeBoxClass = 'rounded-xl border border-amber-200/80 bg-amber-50/90 p-4 text-amber-900/90';
 const statusOrder: StaffOrderStatus[] = ['new', 'preparing', 'ready', 'completed', 'cancelled'];
 const statusLabels: Record<StaffOrderStatus, string> = {
   new: 'New',
@@ -27,12 +27,37 @@ const statusLabels: Record<StaffOrderStatus, string> = {
   cancelled: 'Cancelled',
 };
 const statusSectionClass: Record<StaffOrderStatus, string> = {
-  new: 'border-brandPink/40 bg-brandPink/5',
-  preparing: 'border-blue-200 bg-blue-50/50',
-  ready: 'border-emerald-300 bg-emerald-50',
-  completed: 'border-gray-200 bg-gray-50',
-  cancelled: 'border-red-200 bg-red-50',
+  new: 'border-brandPink/35 bg-brandPink/8',
+  preparing: 'border-sky-300/50 bg-sky-50/60',
+  ready: 'border-emerald-300/50 bg-emerald-50/70',
+  completed: 'border-stone-200/70 bg-light/80',
+  cancelled: 'border-rose-200/60 bg-rose-50/70',
 };
+
+const statusBannerLabel: Record<StaffOrderStatus, string> = {
+  new: 'Pending (new order)',
+  preparing: 'In kitchen — preparing',
+  ready: 'Ready to hand over',
+  completed: 'Done',
+  cancelled: 'Cancelled',
+};
+
+/** Flash ring for quick feedback on status transition — pure UI, keyed by order id. */
+const statusToFlashRing: Record<StaffOrderStatus, string> = {
+  new: 'ring-2 ring-brandPink/50 ring-offset-1 ring-offset-light/95',
+  preparing: 'ring-2 ring-sky-500/45 ring-offset-1 ring-offset-light/95',
+  ready: 'ring-2 ring-emerald-500/50 ring-offset-1 ring-offset-light/95',
+  completed: 'ring-2 ring-stone-500/40 ring-offset-1 ring-offset-light/95',
+  cancelled: 'ring-2 ring-rose-500/50 ring-offset-1 ring-offset-light/95',
+};
+
+const touchActionButtonClass =
+  'min-h-[44px] w-full min-w-0 sm:min-w-[7rem] sm:w-auto sm:grow-0 sm:shrink-0 inline-flex items-center justify-center px-4 text-center text-sm sm:text-base';
+
+const touchPrimary = `${primaryButtonClass} ${touchActionButtonClass}`;
+const touchSecondary = `${secondaryButtonClass} ${touchActionButtonClass}`;
+
+const touchSelect = `${selectClass} min-h-[44px] w-full py-2.5 sm:min-w-[8rem] sm:w-full`;
 
 export default function StaffOrdersPage() {
   const router = useRouter();
@@ -49,9 +74,16 @@ export default function StaffOrdersPage() {
   const [onlineOrderingPaused, setOnlineOrderingPaused] = useState(false);
   const [orderingPauseLoading, setOrderingPauseLoading] = useState(false);
   const [orderingPauseError, setOrderingPauseError] = useState('');
+  const [maxOrdersPerSlot, setMaxOrdersPerSlot] = useState(4);
+  const [maxOrdersPerSlotInput, setMaxOrdersPerSlotInput] = useState('4');
+  const [slotCapacityLoading, setSlotCapacityLoading] = useState(false);
+  const [slotCapacityError, setSlotCapacityError] = useState('');
   const knownOrderIdsRef = useRef<Set<string>>(new Set());
   const hasInitializedKnownOrdersRef = useRef(false);
   const hasUserInteractedRef = useRef(false);
+  /** Key: order id string, value: target status just applied (UI flash only). */
+  const [statusActionFlash, setStatusActionFlash] = useState<Partial<Record<string, StaffOrderStatus>>>({});
+  const statusFlashClearTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   // Supabase auth gate replaces temporary route protection for operational security.
   // x-staff-key remains temporarily in API requests until backend auth migration is complete.
@@ -132,6 +164,66 @@ export default function StaffOrdersPage() {
     }
   }, [getStaffAuthHeaders, isAuthenticated]);
 
+  const fetchSlotCapacity = useCallback(async () => {
+    if (!isAuthenticated) return;
+    setSlotCapacityError('');
+    setSlotCapacityLoading(true);
+    try {
+      const authHeaders = await getStaffAuthHeaders();
+      const res = await fetch('/api/staff/ordering/slot-capacity', {
+        cache: 'no-store',
+        headers: { ...authHeaders, 'content-type': 'application/json' },
+      });
+      if (!res.ok) {
+        setSlotCapacityError('Could not load collection slot capacity.');
+        return;
+      }
+      const data = (await res.json()) as { max?: number };
+      const m = typeof data.max === 'number' ? data.max : 4;
+      setMaxOrdersPerSlot(m);
+      setMaxOrdersPerSlotInput(String(m));
+    } catch {
+      setSlotCapacityError('Could not load collection slot capacity.');
+    } finally {
+      setSlotCapacityLoading(false);
+    }
+  }, [getStaffAuthHeaders, isAuthenticated]);
+
+  const saveSlotCapacity = useCallback(async () => {
+    const parsed = Number.parseInt(maxOrdersPerSlotInput.trim(), 10);
+    if (!Number.isFinite(parsed) || parsed < 1 || parsed > 1000) {
+      setSlotCapacityError('Enter a whole number between 1 and 1000.');
+      return;
+    }
+    setSlotCapacityError('');
+    setSlotCapacityLoading(true);
+    try {
+      const authHeaders = await getStaffAuthHeaders();
+      const res = await fetch('/api/staff/ordering/slot-capacity', {
+        method: 'POST',
+        headers: { ...authHeaders, 'content-type': 'application/json' },
+        body: JSON.stringify({ max: parsed }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setSlotCapacityError(
+          typeof (err as { error?: string }).error === 'string'
+            ? (err as { error: string }).error
+            : 'Could not save. Ensure `app_settings` exists in the database.'
+        );
+        return;
+      }
+      const data = (await res.json()) as { max?: number };
+      const m = typeof data.max === 'number' ? data.max : parsed;
+      setMaxOrdersPerSlot(m);
+      setMaxOrdersPerSlotInput(String(m));
+    } catch {
+      setSlotCapacityError('Could not save collection slot capacity.');
+    } finally {
+      setSlotCapacityLoading(false);
+    }
+  }, [getStaffAuthHeaders, maxOrdersPerSlotInput]);
+
   const setOnlineOrderingPause = useCallback(
     async (next: boolean) => {
       setOrderingPauseError('');
@@ -205,6 +297,11 @@ export default function StaffOrdersPage() {
     if (!isAuthenticated) return;
     void fetchOnlineOrderingPause();
   }, [isAuthenticated, fetchOnlineOrderingPause]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    void fetchSlotCapacity();
+  }, [isAuthenticated, fetchSlotCapacity]);
 
   useEffect(() => {
     const enableAudioAfterInteraction = () => {
@@ -318,6 +415,45 @@ export default function StaffOrdersPage() {
     [orders]
   );
 
+  /** Newest first within each status column (display only). */
+  const displayOrdersByStatus = useMemo(() => {
+    const sort = (list: PersistedOrder[]) =>
+      [...list].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    return statusOrder.reduce<Record<StaffOrderStatus, PersistedOrder[]>>(
+      (acc, st) => {
+        acc[st] = sort(groupedOrders[st]);
+        return acc;
+      },
+      {} as Record<StaffOrderStatus, PersistedOrder[]>
+    );
+  }, [groupedOrders]);
+
+  const triggerStatusActionFlash = useCallback(
+    (orderId: string | number, toStatus: StaffOrderStatus) => {
+      const k = String(orderId);
+      const prevT = statusFlashClearTimers.current[k];
+      if (prevT) clearTimeout(prevT);
+      setStatusActionFlash((m) => ({ ...m, [k]: toStatus }));
+      statusFlashClearTimers.current[k] = setTimeout(() => {
+        setStatusActionFlash((m) => {
+          const n = { ...m };
+          delete n[k];
+          return n;
+        });
+        delete statusFlashClearTimers.current[k];
+      }, 650);
+    },
+    []
+  );
+
+  useEffect(() => {
+    return () => {
+      Object.values(statusFlashClearTimers.current).forEach(clearTimeout);
+    };
+  }, []);
+
   const updateStatus = async (orderId: string | number, status: StaffOrderStatus) => {
     const authHeaders = await getStaffAuthHeaders();
     const response = await fetch(`/api/orders/${encodeURIComponent(String(orderId))}`, {
@@ -332,12 +468,18 @@ export default function StaffOrdersPage() {
     setOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, status } : order)));
   };
 
+  const runStaffStatusAction = (orderId: string | number, toStatus: StaffOrderStatus) => {
+    triggerStatusActionFlash(orderId, toStatus);
+    void updateStatus(orderId, toStatus);
+  };
+
   const renderQuickActions = (order: PersistedOrder) => {
     if (order.status === 'new') {
       return (
         <button
-          onClick={() => updateStatus(order.id, 'preparing')}
-          className={primaryButtonClass}
+          type="button"
+          onClick={() => runStaffStatusAction(order.id, 'preparing')}
+          className={touchPrimary}
         >
           Start preparing
         </button>
@@ -345,14 +487,14 @@ export default function StaffOrdersPage() {
     }
     if (order.status === 'preparing') {
       return (
-        <button onClick={() => updateStatus(order.id, 'ready')} className={primaryButtonClass}>
+        <button type="button" onClick={() => runStaffStatusAction(order.id, 'ready')} className={touchPrimary}>
           Mark ready
         </button>
       );
     }
     if (order.status === 'ready') {
       return (
-        <button onClick={() => updateStatus(order.id, 'completed')} className={primaryButtonClass}>
+        <button type="button" onClick={() => runStaffStatusAction(order.id, 'completed')} className={touchPrimary}>
           Complete order
         </button>
       );
@@ -384,7 +526,7 @@ export default function StaffOrdersPage() {
       <div className="min-h-screen scroll-smooth bg-gradient-to-br from-light via-white to-light">
         <NavBar />
         <main className="max-w-6xl mx-auto px-6 sm:px-8 py-12 sm:py-16">
-          <p className="text-gray-700">Checking staff session...</p>
+          <p className="text-stone-600">Checking staff session...</p>
         </main>
         <Footer />
       </div>
@@ -399,9 +541,9 @@ export default function StaffOrdersPage() {
     <div className="min-h-screen scroll-smooth bg-gradient-to-br from-light via-white to-light">
       <NavBar />
       <main className="max-w-6xl mx-auto px-6 sm:px-8 py-12 sm:py-16">
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 sm:p-8">
+        <div className="rounded-2xl border border-stone-200/70 bg-light/90 p-6 shadow-[0_8px_32px_rgba(28,26,24,0.06)] sm:p-8">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-3xl sm:text-4xl font-black text-gray-900">Staff Orders</h1>
+            <h1 className="text-3xl font-black text-stone-900 sm:text-4xl">Staff Orders</h1>
             <StaffLogoutButton className={secondaryButtonClass} />
           </div>
           <div className={`${noticeBoxClass} mb-6`}>
@@ -431,19 +573,17 @@ export default function StaffOrdersPage() {
             </div>
           </div>
 
-          <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:p-5">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="mb-6 rounded-xl border border-stone-200/80 bg-mint/25 p-4 sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-bold text-slate-900">Online customer ordering</p>
-                <p className="text-sm text-slate-600 mt-1 max-w-2xl">
+                <p className="text-sm font-bold text-stone-900">Online customer ordering</p>
+                <p className="mt-1 max-w-2xl text-sm text-stone-600">
                   When paused, the public order page and checkout are blocked. This dashboard is unchanged;
                   you can still manage and print orders.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2 shrink-0">
-                {orderingPauseLoading && (
-                  <span className="text-xs text-slate-500">Updating…</span>
-                )}
+                {orderingPauseLoading && <span className="text-xs text-stone-500">Updating…</span>}
                 {onlineOrderingPaused ? (
                   <button
                     type="button"
@@ -458,14 +598,14 @@ export default function StaffOrdersPage() {
                     type="button"
                     onClick={() => setOnlineOrderingPause(true)}
                     disabled={orderingPauseLoading}
-                    className="px-4 py-2 rounded-lg font-semibold text-white bg-amber-600 hover:bg-amber-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-400"
+                    className="rounded-xl bg-amber-600/95 px-4 py-2 font-semibold text-white shadow-sm transition-all duration-200 hover:bg-amber-500/95 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:ring-offset-2 active:scale-[0.98]"
                   >
                     Pause online ordering
                   </button>
                 )}
                 <span
                   className={`text-xs font-semibold ${
-                    onlineOrderingPaused ? 'text-amber-800' : 'text-emerald-800'
+                    onlineOrderingPaused ? 'text-amber-800/90' : 'text-emerald-800/90'
                   }`}
                 >
                   {onlineOrderingPaused ? 'Paused' : 'Accepting orders'}
@@ -475,167 +615,265 @@ export default function StaffOrdersPage() {
             {orderingPauseError && <p className="text-sm text-red-600 mt-3">{orderingPauseError}</p>}
           </div>
 
+          <div className="mb-6 rounded-xl border border-stone-200/80 bg-mint/20 p-4 sm:p-5">
+            <p className="text-sm font-bold text-stone-900">Max orders per collection slot</p>
+            <p className="mt-1 max-w-2xl text-sm text-stone-600">
+              Limits how many online collection orders can be booked for each 15-minute window. Full slots are
+              hidden from customers at checkout. Default is 4 if not set in the database.
+            </p>
+            <div className="mt-3 flex flex-col sm:flex-row sm:items-end gap-3">
+              <div className="min-w-0 flex-1 max-w-xs">
+                <label
+                  htmlFor="max-orders-per-slot"
+                  className="mb-1 block text-xs font-semibold text-stone-800"
+                >
+                  Max per slot
+                </label>
+                <input
+                  id="max-orders-per-slot"
+                  type="number"
+                  min={1}
+                  max={1000}
+                  inputMode="numeric"
+                  value={maxOrdersPerSlotInput}
+                  onChange={(e) => setMaxOrdersPerSlotInput(e.target.value)}
+                  className="w-full rounded-lg border border-stone-200/90 bg-light/90 px-3 py-2 text-stone-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  disabled={slotCapacityLoading}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => void saveSlotCapacity()}
+                disabled={slotCapacityLoading}
+                className={primaryButtonClass}
+              >
+                {slotCapacityLoading ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+            {slotCapacityError && <p className="text-sm text-red-600 mt-2">{slotCapacityError}</p>}
+            {!slotCapacityError && maxOrdersPerSlot > 0 && (
+              <p className="mt-2 text-xs text-stone-500">
+                Current setting: {maxOrdersPerSlot} per slot (after save or load).
+              </p>
+            )}
+          </div>
+
           {newOrderNotice && (
-            <div className="mb-6 rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-emerald-900">
+            <div className="mb-6 rounded-xl border border-emerald-300/60 bg-emerald-50/80 p-4 text-emerald-900/95">
               <p className="font-semibold">{newOrderNotice}</p>
             </div>
           )}
 
-          <div className="mb-6 rounded-lg border border-gray-200 p-4 bg-white flex flex-wrap items-center gap-4">
-            <p className="text-gray-900">
+          <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-stone-200/75 bg-light/80 p-4">
+            <p className="text-stone-900">
               <span className="font-semibold">Total orders:</span> {totals.total}
             </p>
-            <p className="text-gray-900">
+            <p className="text-stone-900">
               <span className="font-semibold">Active orders:</span> {totals.active}
             </p>
             <button
+              type="button"
               onClick={fetchOrders}
-              className={`ml-auto ${secondaryButtonClass}`}
+              className={`ml-auto min-h-[44px] inline-flex items-center justify-center px-4 ${secondaryButtonClass}`}
             >
               Refresh
             </button>
           </div>
 
-          {loading && <p className="text-gray-600 mb-4">Loading orders...</p>}
-          {error && <p className="text-red-600 mb-4">{error}</p>}
-          {!loading && orders.length === 0 && <p className="text-gray-600 mb-4">No orders yet.</p>}
+          {loading && <p className="mb-4 text-stone-600">Loading orders...</p>}
+          {error && <p className="mb-4 text-red-600/90">{error}</p>}
+          {!loading && orders.length === 0 && <p className="mb-4 text-stone-600">No orders yet.</p>}
 
           <div className="space-y-6">
             {statusOrder.map((status) => (
               <section key={status} className={`rounded-xl border p-4 sm:p-5 ${statusSectionClass[status]}`}>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-900">
-                    {statusLabels[status]} <span className="text-gray-600">({groupedOrders[status].length})</span>
+                <div className="mb-4">
+                  <h2 className="text-xl font-bold text-stone-900">
+                    {statusLabels[status]}{' '}
+                    <span className="text-stone-600">({groupedOrders[status].length})</span>
                   </h2>
+                  <p className="mt-0.5 text-sm font-medium text-stone-700">{statusBannerLabel[status]}</p>
                 </div>
                 {groupedOrders[status].length === 0 ? (
-                  <p className="text-sm text-gray-600">No {statusLabels[status].toLowerCase()} orders.</p>
+                  <p className="text-sm text-stone-600">No {statusLabels[status].toLowerCase()} orders.</p>
                 ) : (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                    {groupedOrders[status].map((order) => (
-                      <article
-                        key={order.id}
-                        className={`rounded-xl border bg-white p-5 ${
-                          status === 'new'
-                            ? 'border-brandPink/50 ring-1 ring-brandPink/20'
-                            : status === 'ready'
-                              ? 'border-emerald-400 ring-1 ring-emerald-200'
-                              : 'border-gray-200'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-4 mb-3">
-                          <div>
-                            <h3 className="text-xl font-bold text-gray-900">{order.orderNumber}</h3>
-                            <p className="text-sm font-semibold text-gray-800">{order.customerName}</p>
-                          </div>
-                          <span className="text-sm font-semibold text-gray-700">
-                            {new Date(order.createdAt).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
-                        </div>
-
-                        <div className="space-y-1 text-sm text-gray-700 mb-3">
-                          <p>
-                            <span className="font-semibold">Order type:</span> {order.orderType}
-                          </p>
-                          <p>
-                            <span className="font-semibold">
-                              {order.orderType === 'table' ? 'Table number:' : 'Collection time:'}
-                            </span>{' '}
-                            {order.orderType === 'table' ? order.tableNumber || '-' : order.collectionTime || '-'}
-                          </p>
-                          <p>
-                            <span className="font-semibold">Current status:</span> {order.status}
-                          </p>
-                          <p>
-                            <span className="font-semibold">Payment status:</span> {order.paymentStatus} (placeholder)
-                          </p>
-                        </div>
-
-                        {order.notes?.trim() && (
-                          <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900">
-                            <p className="text-xs font-bold uppercase tracking-wide">Special requests</p>
-                            <p className="mt-1 text-sm font-medium whitespace-pre-wrap">{order.notes.trim()}</p>
-                          </div>
-                        )}
-
-                        <ul className="mt-3 space-y-1 text-sm text-gray-700 border border-gray-100 rounded-lg p-3 bg-gray-50/50">
-                          {order.items.map((item) => (
-                            <li key={`${order.orderNumber}-${item.item.id}`} className="flex justify-between gap-3">
-                              <span className="min-w-0">
-                                {item.quantity} x {item.item.name}
+                  <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                    {displayOrdersByStatus[status].map((order) => {
+                      const orderKey = String(order.id);
+                      const flashTo = statusActionFlash[orderKey];
+                      const flashRing = flashTo ? statusToFlashRing[flashTo] : '';
+                      const createdMs = new Date(order.createdAt).getTime();
+                      const ageMin = (Date.now() - createdMs) / 60_000;
+                      const isNewestInColumn = displayOrdersByStatus[status][0]?.id === order.id;
+                      const isFreshNew = order.status === 'new' && ageMin < 4;
+                      const ageFade =
+                        ageMin > 35 ? 'opacity-80' : ageMin > 15 ? 'opacity-92' : 'opacity-100';
+                      const manyItems = order.items.length >= 4;
+                      return (
+                        <article
+                          key={order.id}
+                          className={`rounded-xl border bg-light/95 ${
+                            status === 'new'
+                              ? 'border-brandPink/45 ring-1 ring-brandPink/15'
+                              : status === 'ready'
+                                ? 'border-emerald-400/70 ring-1 ring-emerald-200/50'
+                                : 'border-stone-200/80'
+                          } ${
+                            isNewestInColumn
+                              ? 'z-0 shadow-md shadow-stone-400/20'
+                              : 'shadow-sm'
+                          } ${isFreshNew ? 'ring-1 ring-amber-500/40' : ''} ${ageFade} ${
+                            flashRing
+                          } ${flashTo ? 'scale-[1.02] sm:scale-[1.01]' : 'scale-100'} transition-transform duration-200 ease-out`}
+                        >
+                          <div className="sticky top-0 z-10 -mx-px -mt-px mb-0 rounded-t-xl border-b border-stone-200/70 bg-light/95 px-4 py-3 backdrop-blur-sm sm:px-5 sm:py-3.5">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <h3 className="text-lg font-bold leading-tight text-stone-900 sm:text-xl">
+                                  {order.orderNumber}
+                                </h3>
+                                <p className="text-sm font-semibold text-stone-800">{order.customerName}</p>
+                              </div>
+                              <time
+                                className="shrink-0 text-sm font-semibold text-stone-700 tabular-nums"
+                                dateTime={order.createdAt}
+                              >
+                                {new Date(order.createdAt).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </time>
+                            </div>
+                            <p className="mt-2 text-xs text-stone-600 sm:text-sm">
+                              <span className="font-medium text-stone-700">Status: </span>
+                              <span
+                                className={`ml-1 inline-flex max-w-full items-center rounded-full border px-2.5 py-0.5 text-xs font-bold tracking-tight ${
+                                  order.status === 'new'
+                                    ? 'border-brandPink/50 bg-brandPink/15 text-stone-900'
+                                    : order.status === 'preparing'
+                                      ? 'border-sky-400/50 bg-sky-100/80 text-sky-950'
+                                      : order.status === 'ready'
+                                        ? 'border-emerald-500/50 bg-emerald-100/80 text-emerald-950'
+                                        : order.status === 'completed'
+                                          ? 'border-stone-400/60 bg-stone-200/50 text-stone-900'
+                                          : 'border-rose-500/50 bg-rose-100/80 text-rose-950'
+                                }`}
+                              >
+                                {statusBannerLabel[order.status]}
                               </span>
-                              <span className="font-medium">
-                                GBP {(item.item.price * item.quantity).toFixed(2)}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
+                            </p>
+                          </div>
 
-                        <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between">
-                          <span className="font-semibold text-gray-900">Total</span>
-                          <span className="font-bold text-gray-900">GBP {order.total.toFixed(2)}</span>
-                        </div>
+                          <div className="space-y-3 px-4 pb-4 pt-2 sm:px-5 sm:pb-5 sm:pt-3">
+                            <div className="space-y-1 text-sm text-stone-700">
+                              <p>
+                                <span className="font-semibold">Order type:</span> {order.orderType}
+                              </p>
+                              <p>
+                                <span className="font-semibold">
+                                  {order.orderType === 'table' ? 'Table number:' : 'Collection time:'}
+                                </span>{' '}
+                                {order.orderType === 'table' ? order.tableNumber || '-' : order.collectionTime || '-'}
+                              </p>
+                              <p>
+                                <span className="font-semibold">Payment status:</span> {order.paymentStatus}{' '}
+                                (placeholder)
+                              </p>
+                            </div>
 
-                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {renderQuickActions(order)}
-                          {['new', 'preparing', 'ready'].includes(order.status) && (
-                            <button
-                              onClick={() => updateStatus(order.id, 'cancelled')}
-                              className={secondaryButtonClass}
+                            {order.notes?.trim() && (
+                              <div className="rounded-lg border border-amber-200/80 bg-amber-50/90 p-3 text-amber-900/90">
+                                <p className="text-xs font-bold uppercase tracking-wide">Special requests</p>
+                                <p className="mt-1 text-sm font-medium whitespace-pre-wrap">
+                                  {order.notes.trim()}
+                                </p>
+                              </div>
+                            )}
+
+                            <ul
+                              className={`space-y-2.5 rounded-lg border border-stone-200/60 bg-mint/20 p-3 text-sm text-stone-700 ${
+                                manyItems ? 'max-h-[min(16rem,45dvh)] overflow-y-auto overflow-x-hidden' : ''
+                              }`}
                             >
-                              Cancel
-                            </button>
-                          )}
-                          <select
-                            value={order.status}
-                            onChange={(event) => updateStatus(order.id, event.target.value as StaffOrderStatus)}
-                            className={selectClass}
-                            aria-label={`Update order ${order.orderNumber} status`}
-                          >
-                            {allStatuses.map((entryStatus) => (
-                              <option key={entryStatus} value={entryStatus}>
-                                {entryStatus}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            onClick={() =>
-                              openPrintDocumentWindow(order.id, 'customer_receipt', false)
-                            }
-                            className={secondaryButtonClass}
-                          >
-                            Preview receipt
-                          </button>
-                          <button
-                            onClick={() =>
-                              openPrintDocumentWindow(order.id, 'customer_receipt', true)
-                            }
-                            className={primaryButtonClass}
-                          >
-                            Print receipt
-                          </button>
-                          <button
-                            onClick={() =>
-                              openPrintDocumentWindow(order.id, 'kitchen_ticket', false)
-                            }
-                            className={secondaryButtonClass}
-                          >
-                            Preview kitchen ticket
-                          </button>
-                          <button
-                            onClick={() =>
-                              openPrintDocumentWindow(order.id, 'kitchen_ticket', true)
-                            }
-                            className={primaryButtonClass}
-                          >
-                            Print kitchen ticket
-                          </button>
-                        </div>
-                      </article>
-                    ))}
+                              {order.items.map((item) => (
+                                <li
+                                  key={`${order.orderNumber}-${item.item.id}`}
+                                  className="flex justify-between gap-3 border-b border-stone-200/40 pb-2.5 last:border-0 last:pb-0"
+                                >
+                                  <span className="min-w-0 break-words">
+                                    <span className="font-bold tabular-nums text-stone-900">{item.quantity}×</span>{' '}
+                                    {item.item.name}
+                                  </span>
+                                  <span className="shrink-0 font-medium tabular-nums">
+                                    GBP {(item.item.price * item.quantity).toFixed(2)}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+
+                            <div className="flex items-center justify-between border-t border-stone-200/80 pt-3">
+                              <span className="font-semibold text-stone-900">Total</span>
+                              <span className="font-bold tabular-nums text-stone-900">GBP {order.total.toFixed(2)}</span>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                              {renderQuickActions(order)}
+                              {['new', 'preparing', 'ready'].includes(order.status) && (
+                                <button
+                                  type="button"
+                                  onClick={() => runStaffStatusAction(order.id, 'cancelled')}
+                                  className={touchSecondary}
+                                >
+                                  Cancel
+                                </button>
+                              )}
+                              <select
+                                value={order.status}
+                                onChange={(event) =>
+                                  runStaffStatusAction(order.id, event.target.value as StaffOrderStatus)
+                                }
+                                className={touchSelect}
+                                aria-label={`Update order ${order.orderNumber} status`}
+                              >
+                                {allStatuses.map((entryStatus) => (
+                                  <option key={entryStatus} value={entryStatus}>
+                                    {statusLabels[entryStatus]} ({entryStatus})
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => openPrintDocumentWindow(order.id, 'customer_receipt', false)}
+                                className={touchSecondary}
+                              >
+                                Preview receipt
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openPrintDocumentWindow(order.id, 'customer_receipt', true)}
+                                className={touchPrimary}
+                              >
+                                Print receipt
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openPrintDocumentWindow(order.id, 'kitchen_ticket', false)}
+                                className={touchSecondary}
+                              >
+                                Preview kitchen ticket
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openPrintDocumentWindow(order.id, 'kitchen_ticket', true)}
+                                className={touchPrimary}
+                              >
+                                Print kitchen ticket
+                              </button>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
                   </div>
                 )}
               </section>

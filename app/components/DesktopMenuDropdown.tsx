@@ -100,7 +100,7 @@ export default function DesktopMenuDropdown() {
       case 'beige':
         return 'bg-stone-400';
       default:
-        return 'bg-slate-400';
+        return 'bg-stone-400';
     }
   };
 
@@ -141,7 +141,7 @@ export default function DesktopMenuDropdown() {
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-controls="menu-dropdown"
-        className="px-3 py-2 rounded-lg font-medium transition-all duration-200 hover:text-slate-700 hover:underline hover:underline-offset-4 hover:decoration-[var(--brand-green)] text-slate-900 flex items-center gap-1 group"
+        className="group flex items-center gap-1 rounded-lg px-3 py-2 font-medium text-stone-900 transition-all duration-200 hover:text-stone-700 hover:underline hover:decoration-[var(--brand-green)] hover:underline-offset-4"
       >
         Our Menu
         <svg
@@ -168,12 +168,15 @@ export default function DesktopMenuDropdown() {
             transition={{ duration: 0.2, ease: 'easeOut' }}
             onMouseEnter={handleDropdownMouseEnter}
             onMouseLeave={handleDropdownMouseLeave}
-            className="absolute top-full left-0 mt-2 w-96 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden z-50"
+            className="absolute left-0 top-full z-50 mt-2 w-96 overflow-hidden rounded-xl border border-stone-200/80 bg-light/95 shadow-lg"
           >
             <div className="p-4">
               {groupedCategories.map((group, groupIndex) => (
-                <div key={groupIndex} className={groupIndex > 0 ? 'mt-4 pt-4 border-t border-slate-100' : ''}>
-                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                <div
+                  key={groupIndex}
+                  className={groupIndex > 0 ? 'mt-4 border-t border-stone-200/60 pt-4' : ''}
+                >
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-500">
                     {group.title}
                   </h3>
                   <div className="grid grid-cols-2 gap-2">
@@ -182,11 +185,13 @@ export default function DesktopMenuDropdown() {
                         key={category.id}
                         href={getCategoryHash(category.id)}
                         onClick={() => setIsOpen(false)}
-                        className="flex items-center gap-2 p-2 rounded-lg text-left text-sm text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors duration-200 group/item"
+                        className="group/item flex items-center gap-2 rounded-lg p-2 text-left text-sm text-stone-700 transition-colors duration-200 hover:bg-mint/30 hover:text-stone-900"
                         role="menuitem"
                       >
-                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${getThemeColor(category.theme)}`} />
-                        <span className="truncate group-hover/item:text-slate-900">
+                        <div
+                          className={`h-2 w-2 flex-shrink-0 rounded-full ${getThemeColor(category.theme)}`}
+                        />
+                        <span className="truncate group-hover/item:text-stone-900">
                           {category.title}
                         </span>
                       </Link>
