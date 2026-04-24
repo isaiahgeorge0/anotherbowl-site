@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MENU } from '../data/menu';
+import { MENU } from '@/data/menu';
 
 export default function DesktopMenuDropdown() {
   const [isOpen, setIsOpen] = useState(false);

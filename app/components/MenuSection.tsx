@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MENU, formatPrice } from '../data/menu';
+import { MENU, formatPrice } from '@/data/menu';
 
 export default function MenuSection() {
   const [activeCategory, setActiveCategory] = useState<string>(MENU[0].id);
