@@ -126,7 +126,7 @@ export default function CheckoutPage() {
               </Link>
             </div>
           ) : (
-            <form onSubmit={submitOrder} className="space-y-5">
+            <form id="checkout-form" onSubmit={submitOrder} className="space-y-5 pb-24 md:pb-0">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="customerName" className="block text-sm font-semibold text-gray-900 mb-2">
@@ -171,11 +171,11 @@ export default function CheckoutPage() {
 
               <div>
                 <p className="text-sm font-semibold text-gray-900 mb-2">Order type</p>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   <button
                     type="button"
                     onClick={() => handleOrderTypeChange('collection')}
-                    className={`px-4 py-2 rounded-lg border ${
+                    className={`min-h-[44px] min-w-[44px] px-5 rounded-lg border font-semibold ${
                       details.orderType === 'collection'
                         ? 'border-slate-900 text-white bg-slate-900'
                         : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
@@ -186,7 +186,7 @@ export default function CheckoutPage() {
                   <button
                     type="button"
                     onClick={() => handleOrderTypeChange('table')}
-                    className={`px-4 py-2 rounded-lg border ${
+                    className={`min-h-[44px] min-w-[44px] px-5 rounded-lg border font-semibold ${
                       details.orderType === 'table'
                         ? 'border-slate-900 text-white bg-slate-900'
                         : 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
@@ -262,15 +262,36 @@ export default function CheckoutPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className={`${primaryButtonClass} disabled:opacity-60`}
+                className={`${primaryButtonClass} hidden min-h-[44px] w-full disabled:opacity-60 md:inline-flex`}
               >
                 {submitting ? 'Placing order...' : 'Place order'}
               </button>
-              {submitError && <p className="text-sm text-red-600">{submitError}</p>}
+              {submitError && (
+                <p className="hidden text-sm text-red-600 md:block">{submitError}</p>
+              )}
             </form>
           )}
         </div>
       </main>
+
+      {basket.length > 0 && (
+        <div
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 p-4 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] backdrop-blur-sm md:hidden pb-[max(1rem,env(safe-area-inset-bottom))]"
+          role="region"
+          aria-label="Place order"
+        >
+          <button
+            type="submit"
+            form="checkout-form"
+            disabled={submitting}
+            className={`${primaryButtonClass} min-h-[44px] w-full disabled:opacity-60`}
+          >
+            {submitting ? 'Placing order...' : 'Place order'}
+          </button>
+          {submitError && <p className="mt-2 text-center text-sm text-red-600">{submitError}</p>}
+        </div>
+      )}
+
       <Footer />
     </div>
   );
