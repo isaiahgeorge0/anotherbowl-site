@@ -3,6 +3,7 @@ import { createOrder, listOrders } from '@/lib/ordersDb';
 import { supabaseServer } from '@/lib/supabaseServer';
 import { getSupabaseServiceClient } from '@/lib/supabaseService';
 import { createReceiptSnapshot } from '@/lib/receipt';
+import { authenticateStaffRequest, unauthorizedStaffResponse } from '@/lib/staffAuth';
 import { ORDER_MENU } from '@/data/orderMenu';
 import type { BasketItem, CheckoutOrderType, PersistedOrder } from '@/types/order';
 
@@ -31,16 +32,6 @@ type ValidationResult =
       quantityErrors: Array<{ itemId: string; quantity: number }>;
       totalMismatch: { clientTotal: number; calculatedTotal: number } | null;
     };
-
-const isAuthorizedStaffRequest = (request: Request) => {
-  // TEMPORARY SECURITY LAYER:
-  // Replace this API key check with real staff authentication/authorization before launch.
-  const expectedKey = process.env.STAFF_API_KEY;
-  const providedKey = request.headers.get('x-staff-key');
-
-  if (!expectedKey || !providedKey) return false;
-  return providedKey === expectedKey;
-};
 
 const isSupabaseConfigured = () =>
   Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -249,8 +240,9 @@ const mapRowToPersistedOrder = (row: {
 };
 
 export async function GET(request: Request) {
-  if (!isAuthorizedStaffRequest(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await authenticateStaffRequest(request);
+  if (!auth.ok) {
+    return unauthorizedStaffResponse();
   }
 
   if (isSupabaseServiceConfigured()) {

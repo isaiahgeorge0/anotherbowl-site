@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getStaffMenuSupabase, isAuthorizedStaffRequest } from '../_lib';
+import { authorizeStaffMenuRequest, getStaffMenuSupabase } from '../_lib';
 
 type CreateCategoryBody = {
   id?: string;
@@ -14,9 +14,8 @@ const slugify = (value: string) =>
     .replace(/^-+|-+$/g, '');
 
 export async function POST(request: Request) {
-  if (!isAuthorizedStaffRequest(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const unauthorized = await authorizeStaffMenuRequest(request);
+  if (unauthorized) return unauthorized;
 
   try {
     const body = (await request.json()) as CreateCategoryBody;

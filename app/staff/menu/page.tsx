@@ -1,11 +1,13 @@
 'use client';
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
+import StaffLogoutButton from '@/components/StaffLogoutButton';
+import { supabaseServer } from '@/lib/supabaseServer';
 import type { StaffCategory, StaffProduct } from '@/types/menuManagement';
 
-const STAFF_KEY = process.env.NEXT_PUBLIC_STAFF_API_KEY ?? '';
 const primaryButtonClass =
   'px-4 py-2 rounded-lg font-semibold text-white bg-slate-900 hover:bg-slate-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400';
 const secondaryButtonClass =
@@ -29,9 +31,12 @@ const defaultDraft: ProductDraft = {
 };
 
 export default function StaffMenuPage() {
+  const router = useRouter();
   const [categories, setCategories] = useState<StaffCategory[]>([]);
   const [products, setProducts] = useState<StaffProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -42,18 +47,60 @@ export default function StaffMenuPage() {
   const [editingProduct, setEditingProduct] = useState<StaffProduct | null>(null);
   const [editDraft, setEditDraft] = useState<ProductDraft>(defaultDraft);
 
-  const fetchMenu = useCallback(async () => {
-    if (!STAFF_KEY) {
-      setError('Staff API key is not configured for this environment.');
-      setLoading(false);
-      return;
+  // Supabase auth gate replaces temporary route protection for operational security.
+  // x-staff-key remains temporarily in API requests until backend auth migration is complete.
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabaseServer.auth.getSession();
+      if (!data.session) {
+        router.replace('/staff/login');
+        setIsAuthenticated(false);
+      } else {
+        setIsAuthenticated(true);
+      }
+      setAuthLoading(false);
+    };
+
+    checkSession();
+
+    const { data: authSubscription } = supabaseServer.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        setIsAuthenticated(false);
+        router.replace('/staff/login');
+      } else {
+        setIsAuthenticated(true);
+      }
+    });
+
+    return () => {
+      authSubscription.subscription.unsubscribe();
+    };
+  }, [router]);
+
+  const getStaffAuthHeaders = useCallback(async () => {
+    const headers: Record<string, string> = {};
+    const { data } = await supabaseServer.auth.getSession();
+    const accessToken = data.session?.access_token;
+    if (accessToken) {
+      headers.authorization = `Bearer ${accessToken}`;
     }
+    // Deprecated fallback during transition; remove once all staff clients send session auth.
+    const legacyStaffKey = process.env.NEXT_PUBLIC_STAFF_API_KEY;
+    if (legacyStaffKey) {
+      headers['x-staff-key'] = legacyStaffKey;
+    }
+    return headers;
+  }, []);
+
+  const fetchMenu = useCallback(async () => {
+    if (!isAuthenticated) return;
     try {
       setError('');
       setLoading(true);
+      const authHeaders = await getStaffAuthHeaders();
       const response = await fetch('/api/staff/menu', {
         cache: 'no-store',
-        headers: { 'x-staff-key': STAFF_KEY },
+        headers: authHeaders,
       });
       if (!response.ok) throw new Error('Failed to load menu.');
       const data = (await response.json()) as { categories: StaffCategory[]; products: StaffProduct[] };
@@ -64,11 +111,12 @@ export default function StaffMenuPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [getStaffAuthHeaders, isAuthenticated]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     fetchMenu();
-  }, [fetchMenu]);
+  }, [fetchMenu, isAuthenticated]);
 
   const productsByCategory = useMemo(() => {
     return categories
@@ -99,13 +147,13 @@ export default function StaffMenuPage() {
 
   const submitNewCategory = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!STAFF_KEY) return;
     const displayOrder = Number(newCategoryOrder);
     if (!newCategoryName.trim() || !Number.isInteger(displayOrder) || displayOrder < 0) return;
     setSaving(true);
+    const authHeaders = await getStaffAuthHeaders();
     const response = await fetch('/api/staff/menu/categories', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-staff-key': STAFF_KEY },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({ name: newCategoryName.trim(), display_order: displayOrder }),
     });
     setSaving(false);
@@ -120,13 +168,13 @@ export default function StaffMenuPage() {
 
   const submitNewProduct = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!STAFF_KEY) return;
     const price = Number(newProduct.price);
     if (!newProduct.name.trim() || !newProduct.category || Number.isNaN(price) || price < 0) return;
     setSaving(true);
+    const authHeaders = await getStaffAuthHeaders();
     const response = await fetch('/api/staff/menu/products', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-staff-key': STAFF_KEY },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({
         name: newProduct.name.trim(),
         price,
@@ -145,13 +193,13 @@ export default function StaffMenuPage() {
 
   const saveProductEdit = async () => {
     if (!editingProduct) return;
-    if (!STAFF_KEY) return;
     const price = Number(editDraft.price);
     if (!editDraft.name.trim() || !editDraft.category || Number.isNaN(price) || price < 0) return;
     setSaving(true);
+    const authHeaders = await getStaffAuthHeaders();
     const response = await fetch(`/api/staff/menu/products/${encodeURIComponent(editingProduct.id)}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'x-staff-key': STAFF_KEY },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({
         name: editDraft.name.trim(),
         price,
@@ -169,10 +217,10 @@ export default function StaffMenuPage() {
   };
 
   const setProductActiveState = async (product: StaffProduct, isActive: boolean) => {
-    if (!STAFF_KEY) return;
+    const authHeaders = await getStaffAuthHeaders();
     const response = await fetch(`/api/staff/menu/products/${encodeURIComponent(product.id)}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'x-staff-key': STAFF_KEY },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({ is_active: isActive }),
     });
     if (!response.ok) {
@@ -185,10 +233,10 @@ export default function StaffMenuPage() {
   };
 
   const saveCategoryEdit = async (category: StaffCategory, name: string, displayOrder: number) => {
-    if (!STAFF_KEY) return;
+    const authHeaders = await getStaffAuthHeaders();
     const response = await fetch(`/api/staff/menu/categories/${encodeURIComponent(category.id)}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'x-staff-key': STAFF_KEY },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({ name: name.trim(), display_order: displayOrder }),
     });
     if (!response.ok) {
@@ -198,16 +246,36 @@ export default function StaffMenuPage() {
     fetchMenu();
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen scroll-smooth bg-gradient-to-br from-light via-white to-light">
+        <NavBar />
+        <main className="max-w-6xl mx-auto px-6 sm:px-8 py-12 sm:py-16">
+          <p className="text-gray-700">Checking staff session...</p>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen scroll-smooth bg-gradient-to-br from-light via-white to-light">
       <NavBar />
       <main className="max-w-6xl mx-auto px-6 sm:px-8 py-12 sm:py-16">
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 sm:p-8">
-          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 mb-3">Staff Menu Management</h1>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-3xl sm:text-4xl font-black text-gray-900">Staff Menu Management</h1>
+            <StaffLogoutButton className={secondaryButtonClass} />
+          </div>
           <div className={`${noticeBoxClass} mb-6`}>
             <p className="text-sm font-semibold">Internal staff management view only.</p>
             <p className="text-sm mt-1">
-              Protected by temporary API key headers. Replace with full staff authentication before launch.
+              Staff route access now uses Supabase session auth. Legacy API-key fallback remains temporarily
+              during migration.
             </p>
             <p className="text-sm mt-1">
               Product deactivation uses soft delete (`is_active = false`) to preserve order history integrity.

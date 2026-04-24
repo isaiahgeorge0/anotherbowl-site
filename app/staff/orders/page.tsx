@@ -1,14 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient, type RealtimeChannel } from '@supabase/supabase-js';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
+import StaffLogoutButton from '@/components/StaffLogoutButton';
+import { supabaseServer } from '@/lib/supabaseServer';
 import type { PersistedOrder, StaffOrderStatus } from '@/types/order';
 import type { PrintableDocumentType } from '@/types/printing';
 
 const allStatuses: StaffOrderStatus[] = ['new', 'preparing', 'ready', 'completed', 'cancelled'];
-const STAFF_KEY = process.env.NEXT_PUBLIC_STAFF_API_KEY ?? '';
 const primaryButtonClass =
   'px-4 py-2 rounded-lg font-semibold text-white bg-slate-900 hover:bg-slate-800 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400';
 const secondaryButtonClass =
@@ -33,52 +35,94 @@ const statusSectionClass: Record<StaffOrderStatus, string> = {
 };
 
 export default function StaffOrdersPage() {
+  const router = useRouter();
   const [orders, setOrders] = useState<PersistedOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState('');
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'active' | 'unavailable'>(
     'connecting'
   );
   const [newOrderNotice, setNewOrderNotice] = useState<string | null>(null);
   const [soundAlertsEnabled, setSoundAlertsEnabled] = useState(false);
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const knownOrderIdsRef = useRef<Set<string>>(new Set());
+  const hasInitializedKnownOrdersRef = useRef(false);
+  const hasUserInteractedRef = useRef(false);
 
-  // TODO: TEMP auth layer only (x-staff-key).
-  // Replace with real staff authentication/authorization before launch.
+  // Supabase auth gate replaces temporary route protection for operational security.
+  // x-staff-key remains temporarily in API requests until backend auth migration is complete.
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabaseServer.auth.getSession();
+      if (!data.session) {
+        router.replace('/staff/login');
+        setIsAuthenticated(false);
+      } else {
+        setIsAuthenticated(true);
+      }
+      setAuthLoading(false);
+    };
+
+    checkSession();
+
+    const { data: authSubscription } = supabaseServer.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        setIsAuthenticated(false);
+        router.replace('/staff/login');
+      } else {
+        setIsAuthenticated(true);
+      }
+    });
+
+    return () => {
+      authSubscription.subscription.unsubscribe();
+    };
+  }, [router]);
 
   const playAlertTone = useCallback(async () => {
-    if (!soundAlertsEnabled) return;
+    // Preparation for future operational alerts only (not printer automation).
+    if (!soundAlertsEnabled || !hasUserInteractedRef.current) return;
     try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new window.AudioContext();
-      }
-      const ctx = audioContextRef.current;
-      if (ctx.state === 'suspended') {
-        await ctx.resume();
-      }
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-      oscillator.type = 'sine';
-      oscillator.frequency.value = 880;
-      gain.gain.value = 0.06;
-      oscillator.connect(gain);
-      gain.connect(ctx.destination);
-      oscillator.start();
-      oscillator.stop(ctx.currentTime + 0.15);
+      await new Audio('/sounds/new-order.mp3').play();
     } catch {
       // Browser may block autoplay/resume if user gesture rules are not met.
     }
   }, [soundAlertsEnabled]);
 
+  const getStaffAuthHeaders = useCallback(async () => {
+    const headers: Record<string, string> = {};
+    const { data } = await supabaseServer.auth.getSession();
+    const accessToken = data.session?.access_token;
+    if (accessToken) {
+      headers.authorization = `Bearer ${accessToken}`;
+    }
+    // Deprecated fallback during transition; remove once all staff clients send session auth.
+    const legacyStaffKey = process.env.NEXT_PUBLIC_STAFF_API_KEY;
+    if (legacyStaffKey) {
+      headers['x-staff-key'] = legacyStaffKey;
+    }
+    return headers;
+  }, []);
+
   const fetchOrders = useCallback(async () => {
+    if (!isAuthenticated) return;
     try {
       setError('');
       setLoading(true);
+      const authHeaders = await getStaffAuthHeaders();
       const response = await fetch('/api/orders', {
         cache: 'no-store',
-        headers: { 'x-staff-key': STAFF_KEY },
+        headers: authHeaders,
       });
-      if (!response.ok) throw new Error('Failed to fetch orders');
+      if (!response.ok) {
+        console.error('GET /api/orders failed.', {
+          status: response.status,
+          statusText: response.statusText,
+        });
+        throw new Error('Failed to fetch orders');
+      }
       const data = (await response.json()) as {
         orders: Array<{ order: PersistedOrder; items: PersistedOrder['items'] }>;
       };
@@ -93,13 +137,34 @@ export default function StaffOrdersPage() {
     } finally {
       setLoading(false);
     }
+  }, [getStaffAuthHeaders, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetchOrders();
+  }, [fetchOrders, isAuthenticated]);
+
+  useEffect(() => {
+    const enableAudioAfterInteraction = () => {
+      hasUserInteractedRef.current = true;
+      window.removeEventListener('pointerdown', enableAudioAfterInteraction);
+      window.removeEventListener('keydown', enableAudioAfterInteraction);
+      window.removeEventListener('touchstart', enableAudioAfterInteraction);
+    };
+
+    window.addEventListener('pointerdown', enableAudioAfterInteraction, { passive: true });
+    window.addEventListener('keydown', enableAudioAfterInteraction);
+    window.addEventListener('touchstart', enableAudioAfterInteraction, { passive: true });
+
+    return () => {
+      window.removeEventListener('pointerdown', enableAudioAfterInteraction);
+      window.removeEventListener('keydown', enableAudioAfterInteraction);
+      window.removeEventListener('touchstart', enableAudioAfterInteraction);
+    };
   }, []);
 
   useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
-
-  useEffect(() => {
+    if (!isAuthenticated) return;
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -114,11 +179,8 @@ export default function StaffOrdersPage() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'orders' },
-        (payload) => {
-          const orderNumber = (payload.new as { order_number?: string } | null)?.order_number;
-          setNewOrderNotice(orderNumber ? `New order received: ${orderNumber}` : 'New order received');
+        () => {
           fetchOrders();
-          playAlertTone();
         }
       )
       .on(
@@ -140,13 +202,42 @@ export default function StaffOrdersPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchOrders, playAlertTone]);
+  }, [fetchOrders, isAuthenticated]);
 
   useEffect(() => {
     if (!newOrderNotice) return;
     const timer = window.setTimeout(() => setNewOrderNotice(null), 6000);
     return () => window.clearTimeout(timer);
   }, [newOrderNotice]);
+
+  useEffect(() => {
+    // Detect genuinely new incoming orders by comparing IDs against a persisted seen-set.
+    const currentIds = new Set(orders.map((order) => String(order.id)));
+    if (!hasInitializedKnownOrdersRef.current) {
+      knownOrderIdsRef.current = currentIds;
+      hasInitializedKnownOrdersRef.current = true;
+      return;
+    }
+
+    const newOrders = orders.filter(
+      (order) => order.status === 'new' && !knownOrderIdsRef.current.has(String(order.id))
+    );
+
+    if (newOrders.length > 0) {
+      // Sound alerts are intentionally tied to new incoming order IDs only.
+      for (const order of newOrders) {
+        console.log('🔔 New order detected:', order.id);
+        void playAlertTone();
+      }
+      setNewOrderNotice(
+        newOrders.length === 1
+          ? `New order received: ${newOrders[0].orderNumber}`
+          : `${newOrders.length} new orders received`
+      );
+    }
+
+    knownOrderIdsRef.current = currentIds;
+  }, [orders, playAlertTone]);
 
   const totals = useMemo(
     () => ({
@@ -166,11 +257,12 @@ export default function StaffOrdersPage() {
   );
 
   const updateStatus = async (orderId: string | number, status: StaffOrderStatus) => {
+    const authHeaders = await getStaffAuthHeaders();
     const response = await fetch(`/api/orders/${encodeURIComponent(String(orderId))}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        'x-staff-key': STAFF_KEY,
+        ...authHeaders,
       },
       body: JSON.stringify({ status }),
     });
@@ -225,16 +317,36 @@ export default function StaffOrdersPage() {
     );
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen scroll-smooth bg-gradient-to-br from-light via-white to-light">
+        <NavBar />
+        <main className="max-w-6xl mx-auto px-6 sm:px-8 py-12 sm:py-16">
+          <p className="text-gray-700">Checking staff session...</p>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen scroll-smooth bg-gradient-to-br from-light via-white to-light">
       <NavBar />
       <main className="max-w-6xl mx-auto px-6 sm:px-8 py-12 sm:py-16">
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 sm:p-8">
-          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 mb-3">Staff Orders</h1>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-3xl sm:text-4xl font-black text-gray-900">Staff Orders</h1>
+            <StaffLogoutButton className={secondaryButtonClass} />
+          </div>
           <div className={`${noticeBoxClass} mb-6`}>
             <p className="text-sm font-semibold">Staff test view only.</p>
             <p className="text-sm mt-1">
-              Temporary API-key protection is enabled and must be replaced with real staff authentication.
+              Staff route access now uses Supabase session auth. Legacy API-key fallback remains temporarily
+              during migration.
             </p>
             <p className="text-sm mt-1">Live order updates enabled for testing.</p>
             {realtimeStatus !== 'active' && (
@@ -245,10 +357,11 @@ export default function StaffOrdersPage() {
             )}
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <button
-                onClick={() => setSoundAlertsEnabled((prev) => !prev)}
+                onClick={() => setSoundAlertsEnabled(true)}
+                disabled={soundAlertsEnabled}
                 className={secondaryButtonClass}
               >
-                {soundAlertsEnabled ? 'Disable sound alerts' : 'Enable sound alerts'}
+                {soundAlertsEnabled ? 'Sound alerts enabled 🔔' : 'Enable sound alerts'}
               </button>
               <span className="text-xs text-amber-900/90">
                 Sound alerts may require prior user interaction in some browsers.

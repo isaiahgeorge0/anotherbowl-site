@@ -2,15 +2,9 @@ import { NextResponse } from 'next/server';
 import { listOrders } from '@/lib/ordersDb';
 import { getSupabaseServiceClient } from '@/lib/supabaseService';
 import { createReceiptSnapshot } from '@/lib/receipt';
+import { authenticateStaffRequest, unauthorizedStaffResponse } from '@/lib/staffAuth';
 import type { BasketItem, CheckoutOrderType, PersistedOrder, ReceiptSnapshot } from '@/types/order';
 import type { PrintableOrderPayload } from '@/types/printing';
-
-const isAuthorizedStaffRequest = (request: Request) => {
-  const expectedKey = process.env.STAFF_API_KEY;
-  const providedKey = request.headers.get('x-staff-key');
-  if (!expectedKey || !providedKey) return false;
-  return providedKey === expectedKey;
-};
 
 const isSupabaseConfigured = () =>
   Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SERVER_SUPABASE_SERVICE_ROLE_KEY);
@@ -126,8 +120,9 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  if (!isAuthorizedStaffRequest(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await authenticateStaffRequest(request);
+  if (!auth.ok) {
+    return unauthorizedStaffResponse();
   }
 
   const { id } = await context.params;

@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getStaffMenuSupabase, isAuthorizedStaffRequest } from './_lib';
+import { authorizeStaffMenuRequest, getStaffMenuSupabase } from './_lib';
 import type { StaffCategory, StaffProduct } from '@/types/menuManagement';
 
 export async function GET(request: Request) {
-  if (!isAuthorizedStaffRequest(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const unauthorized = await authorizeStaffMenuRequest(request);
+  if (unauthorized) return unauthorized;
 
   try {
     const supabase = getStaffMenuSupabase();

@@ -1,19 +1,10 @@
 import { NextResponse } from 'next/server';
 import { updateOrderStatus } from '@/lib/ordersDb';
 import { getSupabaseServiceClient } from '@/lib/supabaseService';
+import { authenticateStaffRequest, unauthorizedStaffResponse } from '@/lib/staffAuth';
 import type { StaffOrderStatus } from '@/types/order';
 
 const ALLOWED_STATUSES: StaffOrderStatus[] = ['new', 'preparing', 'ready', 'completed', 'cancelled'];
-
-const isAuthorizedStaffRequest = (request: Request) => {
-  // TEMPORARY SECURITY LAYER:
-  // Replace this API key check with real staff authentication/authorization before launch.
-  const expectedKey = process.env.STAFF_API_KEY;
-  const providedKey = request.headers.get('x-staff-key');
-
-  if (!expectedKey || !providedKey) return false;
-  return providedKey === expectedKey;
-};
 
 const isSupabaseConfigured = () =>
   Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SERVER_SUPABASE_SERVICE_ROLE_KEY);
@@ -22,8 +13,9 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  if (!isAuthorizedStaffRequest(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await authenticateStaffRequest(request);
+  if (!auth.ok) {
+    return unauthorizedStaffResponse();
   }
 
   try {
