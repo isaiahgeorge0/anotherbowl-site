@@ -61,3 +61,9 @@ create index if not exists idx_orders_order_number on public.orders(order_number
 create index if not exists idx_order_items_order_id on public.order_items(order_id);
 create index if not exists idx_products_active on public.products(is_active);
 create index if not exists idx_products_category on public.products(category);
+
+-- Key/value settings (e.g. `online_ordering_paused`). Read/write from API with service role.
+create table if not exists public.app_settings (
+  key text primary key,
+  value jsonb not null
+);

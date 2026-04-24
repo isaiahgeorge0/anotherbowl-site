@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
+import { getCollectionSlotsForReferenceNow } from '@/lib/openingHours';
 import { clearBasket, getBasket } from '@/lib/orderStorage';
 import type { BasketItem, CheckoutDetails, CheckoutOrderType } from '@/types/order';
 
@@ -14,7 +15,7 @@ const primaryButtonClass =
 const secondaryButtonClass =
   'px-4 py-2 rounded-lg border border-gray-300 text-gray-800 bg-white shadow-sm transition-all duration-200 hover:bg-gray-50 hover:shadow-md active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-400';
 const inputClass =
-  'w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 bg-white shadow-sm transition-[border-color,box-shadow] duration-200 placeholder:text-gray-400 hover:border-gray-400 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400/50 focus:ring-offset-0';
+  'w-full min-w-0 max-w-full box-border rounded-lg border border-gray-300 px-4 py-3 text-gray-900 bg-white shadow-sm transition-[border-color,box-shadow] duration-200 placeholder:text-gray-400 hover:border-gray-400 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400/50 focus:ring-offset-0';
 const noticeBoxClass = 'rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900';
 
 export default function CheckoutPage() {
@@ -32,11 +33,44 @@ export default function CheckoutPage() {
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [stickySubmitEntered, setStickySubmitEntered] = useState(false);
+  const [orderingPaused, setOrderingPaused] = useState(false);
+  const [orderingStatusLoaded, setOrderingStatusLoaded] = useState(false);
   const prevCheckoutBasketLenRef = useRef(0);
+
+  const collectionMeta = useMemo(
+    () => (details.orderType === 'collection' ? getCollectionSlotsForReferenceNow() : null),
+    [details.orderType]
+  );
 
   useEffect(() => {
     setBasket(getBasket());
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch('/api/ordering/status', { cache: 'no-store' });
+        const j = (await r.json()) as { paused?: boolean };
+        if (!cancelled) setOrderingPaused(Boolean(j.paused));
+      } catch {
+        if (!cancelled) setOrderingPaused(false);
+      } finally {
+        if (!cancelled) setOrderingStatusLoaded(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (details.orderType !== 'collection' || !collectionMeta?.slots.length) return;
+    const t = details.collectionTime ?? '';
+    if (!t || !collectionMeta.slots.includes(t)) {
+      setDetails((p) => ({ ...p, collectionTime: collectionMeta.slots[0] ?? '' }));
+    }
+  }, [details.orderType, details.collectionTime, collectionMeta]);
 
   useEffect(() => {
     const len = basket.length;
@@ -66,8 +100,12 @@ export default function CheckoutPage() {
     if (details.orderType === 'table' && !details.tableNumber?.trim()) {
       nextErrors.tableNumber = 'Table number is required for table orders.';
     }
-    if (details.orderType === 'collection' && !details.collectionTime?.trim()) {
-      nextErrors.collectionTime = 'Collection time is required.';
+    if (details.orderType === 'collection' && collectionMeta) {
+      if (collectionMeta.slots.length === 0) {
+        nextErrors.collectionTime = collectionMeta.message ?? 'No collection times are available right now.';
+      } else if (!details.collectionTime?.trim() || !collectionMeta.slots.includes(details.collectionTime)) {
+        nextErrors.collectionTime = 'Please choose a valid collection time.';
+      }
     }
 
     setErrors(nextErrors);
@@ -86,6 +124,11 @@ export default function CheckoutPage() {
   const submitOrder = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (basket.length === 0) return;
+    if (!orderingStatusLoaded) return;
+    if (orderingPaused) {
+      setSubmitError('Online ordering is currently paused. Please try again later.');
+      return;
+    }
     if (!validate()) return;
     setSubmitError('');
     setSubmitting(true);
@@ -110,7 +153,15 @@ export default function CheckoutPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Could not place order.');
+        const data = (await response.json().catch(() => ({}))) as { error?: string };
+        if (response.status === 403) {
+          setSubmitError(data.error ?? 'Online ordering is currently paused. Please try again later.');
+        } else {
+          setSubmitError(
+            data.error ?? 'Could not place order. Please check your details and try again.'
+          );
+        }
+        return;
       }
 
       clearBasket();
@@ -122,11 +173,18 @@ export default function CheckoutPage() {
     }
   };
 
+  const canCheckout = orderingStatusLoaded && !orderingPaused;
+  const collectionNoSlots: boolean = Boolean(
+    details.orderType === 'collection' &&
+      collectionMeta &&
+      (collectionMeta.slots.length === 0 || collectionMeta.dayClosed || collectionMeta.noSlotsLeftToday)
+  );
+
   return (
     <div className="min-h-screen scroll-smooth bg-gradient-to-br from-light via-white to-light">
       <NavBar />
-      <main className="max-w-4xl mx-auto px-6 sm:px-8 py-12 sm:py-16">
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 sm:p-8">
+      <main className="max-w-4xl mx-auto min-w-0 px-6 sm:px-8 py-12 sm:py-16">
+        <div className="min-w-0 max-w-full box-border overflow-hidden bg-white rounded-xl shadow-lg border border-gray-200 p-6 sm:p-8">
           <h1 className="text-3xl sm:text-4xl font-black text-gray-900 mb-3">Checkout</h1>
           <div className={`${noticeBoxClass} mb-6`}>
             <p className="text-sm font-semibold">Payment integration coming soon.</p>
@@ -140,10 +198,20 @@ export default function CheckoutPage() {
                 Back to order menu
               </Link>
             </div>
+          ) : !orderingStatusLoaded ? (
+            <p className="text-sm text-slate-600">Loading…</p>
+          ) : orderingPaused ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-5 text-amber-950">
+              <p className="font-semibold">Online ordering is currently paused</p>
+              <p className="text-sm mt-2">We are not taking new orders at the moment. Please check back later.</p>
+              <Link href="/order" className="mt-4 inline-block font-semibold text-slate-900 hover:underline">
+                Back to order menu
+              </Link>
+            </div>
           ) : (
             <form id="checkout-form" onSubmit={submitOrder} className="space-y-5 pb-24 md:pb-0">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
+              <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="min-w-0 max-w-full">
                   <label htmlFor="customerName" className="block text-sm font-semibold text-gray-900 mb-2">
                     Customer name
                   </label>
@@ -156,7 +224,7 @@ export default function CheckoutPage() {
                   {errors.customerName && <p className="text-sm text-red-600 mt-1">{errors.customerName}</p>}
                 </div>
 
-                <div>
+                <div className="min-w-0 max-w-full">
                   <label htmlFor="email" className="block text-sm font-semibold text-gray-900 mb-2">
                     Email
                   </label>
@@ -171,7 +239,7 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              <div>
+              <div className="min-w-0 max-w-full">
                 <label htmlFor="phone" className="block text-sm font-semibold text-gray-900 mb-2">
                   Phone
                 </label>
@@ -213,7 +281,7 @@ export default function CheckoutPage() {
               </div>
 
               {details.orderType === 'table' ? (
-                <div>
+                <div className="min-w-0 max-w-full">
                   <label htmlFor="tableNumber" className="block text-sm font-semibold text-gray-900 mb-2">
                     Table number
                   </label>
@@ -226,24 +294,35 @@ export default function CheckoutPage() {
                   {errors.tableNumber && <p className="text-sm text-red-600 mt-1">{errors.tableNumber}</p>}
                 </div>
               ) : (
-                <div>
+                <div className="min-w-0 w-full max-w-full">
                   <label htmlFor="collectionTime" className="block text-sm font-semibold text-gray-900 mb-2">
                     Collection time
                   </label>
-                  <input
-                    id="collectionTime"
-                    type="time"
-                    value={details.collectionTime ?? ''}
-                    onChange={(e) => setDetails((prev) => ({ ...prev, collectionTime: e.target.value }))}
-                    className={inputClass}
-                  />
+                  {collectionMeta && collectionMeta.slots.length > 0 ? (
+                    <select
+                      id="collectionTime"
+                      value={details.collectionTime ?? collectionMeta.slots[0] ?? ''}
+                      onChange={(e) => setDetails((prev) => ({ ...prev, collectionTime: e.target.value }))}
+                      className={inputClass}
+                    >
+                      {collectionMeta.slots.map((slot) => (
+                        <option key={slot} value={slot}>
+                          {slot}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-sm text-amber-800">
+                      {collectionMeta?.message ?? 'No collection times are available right now.'}
+                    </p>
+                  )}
                   {errors.collectionTime && (
                     <p className="text-sm text-red-600 mt-1">{errors.collectionTime}</p>
                   )}
                 </div>
               )}
 
-              <div>
+              <div className="min-w-0 max-w-full">
                 <label htmlFor="notes" className="block text-sm font-semibold text-gray-900 mb-2">
                   Order notes
                 </label>
@@ -276,7 +355,7 @@ export default function CheckoutPage() {
 
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || !canCheckout || collectionNoSlots}
                 aria-busy={submitting}
                 className={`${primaryButtonClass} hidden min-h-[44px] w-full md:inline-flex ${
                   submitting ? 'cursor-wait opacity-80' : ''
@@ -302,7 +381,7 @@ export default function CheckoutPage() {
         </div>
       </main>
 
-      {basket.length > 0 && (
+      {basket.length > 0 && canCheckout && (
         <div
           className={`fixed inset-x-0 bottom-0 z-40 border-t-2 border-slate-200/90 bg-white/95 p-5 shadow-[0_-10px_40px_-8px_rgba(15,23,42,0.12)] backdrop-blur-md transition-[transform,opacity] duration-300 ease-out will-change-transform md:hidden pb-[max(1rem,env(safe-area-inset-bottom))] ${
             stickySubmitEntered ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
@@ -313,7 +392,7 @@ export default function CheckoutPage() {
           <button
             type="submit"
             form="checkout-form"
-            disabled={submitting}
+            disabled={submitting || collectionNoSlots}
             aria-busy={submitting}
             className={`${primaryButtonClass} min-h-[44px] w-full ${submitting ? 'cursor-wait opacity-80' : ''}`}
           >

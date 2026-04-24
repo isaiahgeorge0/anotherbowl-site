@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createOrder, listOrders } from '@/lib/ordersDb';
+import { isValidCollectionTimeForOrderNow } from '@/lib/openingHours';
+import { getOnlineOrderingPausedFromDb } from '@/lib/orderingSettings';
 import { supabaseServer } from '@/lib/supabaseServer';
 import { getSupabaseServiceClient } from '@/lib/supabaseService';
 import { createReceiptSnapshot } from '@/lib/receipt';
@@ -311,6 +313,19 @@ export async function POST(request: Request) {
       body.items.length === 0
     ) {
       return NextResponse.json({ error: 'Invalid order payload.' }, { status: 400 });
+    }
+
+    if (await getOnlineOrderingPausedFromDb()) {
+      return NextResponse.json({ error: 'Online ordering is paused.' }, { status: 403 });
+    }
+
+    if (body.orderType === 'collection') {
+      if (!isValidCollectionTimeForOrderNow(body.collectionTime)) {
+        return NextResponse.json(
+          { error: 'That collection time is not available. Choose a time within opening hours.' },
+          { status: 400 }
+        );
+      }
     }
 
     const validation = await validateAndNormalizeOrder(body.items, body.total);

@@ -46,6 +46,9 @@ export default function StaffOrdersPage() {
   );
   const [newOrderNotice, setNewOrderNotice] = useState<string | null>(null);
   const [soundAlertsEnabled, setSoundAlertsEnabled] = useState(false);
+  const [onlineOrderingPaused, setOnlineOrderingPaused] = useState(false);
+  const [orderingPauseLoading, setOrderingPauseLoading] = useState(false);
+  const [orderingPauseError, setOrderingPauseError] = useState('');
   const knownOrderIdsRef = useRef<Set<string>>(new Set());
   const hasInitializedKnownOrdersRef = useRef(false);
   const hasUserInteractedRef = useRef(false);
@@ -106,6 +109,60 @@ export default function StaffOrdersPage() {
     return headers;
   }, []);
 
+  const fetchOnlineOrderingPause = useCallback(async () => {
+    if (!isAuthenticated) return;
+    setOrderingPauseError('');
+    setOrderingPauseLoading(true);
+    try {
+      const authHeaders = await getStaffAuthHeaders();
+      const res = await fetch('/api/staff/ordering/pause', {
+        cache: 'no-store',
+        headers: { ...authHeaders, 'content-type': 'application/json' },
+      });
+      if (!res.ok) {
+        setOrderingPauseError('Could not load online ordering status.');
+        return;
+      }
+      const data = (await res.json()) as { paused?: boolean };
+      setOnlineOrderingPaused(Boolean(data.paused));
+    } catch {
+      setOrderingPauseError('Could not load online ordering status.');
+    } finally {
+      setOrderingPauseLoading(false);
+    }
+  }, [getStaffAuthHeaders, isAuthenticated]);
+
+  const setOnlineOrderingPause = useCallback(
+    async (next: boolean) => {
+      setOrderingPauseError('');
+      setOrderingPauseLoading(true);
+      try {
+        const authHeaders = await getStaffAuthHeaders();
+        const res = await fetch('/api/staff/ordering/pause', {
+          method: 'POST',
+          headers: { ...authHeaders, 'content-type': 'application/json' },
+          body: JSON.stringify({ paused: next }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          setOrderingPauseError(
+            typeof (err as { error?: string }).error === 'string'
+              ? (err as { error: string }).error
+              : 'Could not update. Ensure `app_settings` exists in the database.'
+          );
+          return;
+        }
+        const data = (await res.json()) as { paused?: boolean };
+        setOnlineOrderingPaused(Boolean(data.paused));
+      } catch {
+        setOrderingPauseError('Could not update online ordering status.');
+      } finally {
+        setOrderingPauseLoading(false);
+      }
+    },
+    [getStaffAuthHeaders]
+  );
+
   const fetchOrders = useCallback(async () => {
     if (!isAuthenticated) return;
     try {
@@ -143,6 +200,11 @@ export default function StaffOrdersPage() {
     if (!isAuthenticated) return;
     fetchOrders();
   }, [fetchOrders, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    void fetchOnlineOrderingPause();
+  }, [isAuthenticated, fetchOnlineOrderingPause]);
 
   useEffect(() => {
     const enableAudioAfterInteraction = () => {
@@ -367,6 +429,50 @@ export default function StaffOrdersPage() {
                 Sound alerts may require prior user interaction in some browsers.
               </span>
             </div>
+          </div>
+
+          <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-slate-900">Online customer ordering</p>
+                <p className="text-sm text-slate-600 mt-1 max-w-2xl">
+                  When paused, the public order page and checkout are blocked. This dashboard is unchanged;
+                  you can still manage and print orders.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {orderingPauseLoading && (
+                  <span className="text-xs text-slate-500">Updating…</span>
+                )}
+                {onlineOrderingPaused ? (
+                  <button
+                    type="button"
+                    onClick={() => setOnlineOrderingPause(false)}
+                    disabled={orderingPauseLoading}
+                    className={primaryButtonClass}
+                  >
+                    Resume online ordering
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setOnlineOrderingPause(true)}
+                    disabled={orderingPauseLoading}
+                    className="px-4 py-2 rounded-lg font-semibold text-white bg-amber-600 hover:bg-amber-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-400"
+                  >
+                    Pause online ordering
+                  </button>
+                )}
+                <span
+                  className={`text-xs font-semibold ${
+                    onlineOrderingPaused ? 'text-amber-800' : 'text-emerald-800'
+                  }`}
+                >
+                  {onlineOrderingPaused ? 'Paused' : 'Accepting orders'}
+                </span>
+              </div>
+            </div>
+            {orderingPauseError && <p className="text-sm text-red-600 mt-3">{orderingPauseError}</p>}
           </div>
 
           {newOrderNotice && (
