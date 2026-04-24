@@ -12,17 +12,17 @@ type FormErrors = {
 };
 
 const HOURS = [
-  { day: 'Monday', hours: '7:00am-3:00pm' },
-  { day: 'Tuesday', hours: '7:00am-3:00pm' },
-  { day: 'Wednesday', hours: '7:00am-3:00pm' },
-  { day: 'Thursday', hours: '7:00am-3:00pm' },
-  { day: 'Friday', hours: '7:00am-3:00pm' },
-  { day: 'Saturday', hours: '8:00am-2:00pm' },
-  { day: 'Sunday', hours: 'Closed' },
+  { day: 'Monday', hours: '9:00am-5:00pm' },
+  { day: 'Tuesday', hours: '9:00am-5:00pm' },
+  { day: 'Wednesday', hours: '9:00am-5:00pm' },
+  { day: 'Thursday', hours: '9:00am-5:00pm' },
+  { day: 'Friday', hours: '9:00am-5:00pm' },
+  { day: 'Saturday', hours: '9:00am-5:00pm' },
+  { day: 'Sunday', hours: '9:00am-4:00pm' },
 ];
 
 const DAY_ORDER = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const CONTACT_EMAIL = 'placeholder@anotherbowl.com';
+const CONTACT_EMAIL = 'anotherbowlipswich@gmail.com';
 
 export default function ContactPage() {
   const [name, setName] = useState('');
@@ -94,19 +94,11 @@ export default function ContactPage() {
                   </span>
                   <div>
                     <p className="font-semibold text-gray-900">Address</p>
-                    <p>[Insert placeholder cafe address for now]</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-primary/10 text-primary">
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                      <path d="M6.62 10.79a15.53 15.53 0 006.59 6.59l2.2-2.2a1 1 0 011-.24c1.12.37 2.32.56 3.59.56a1 1 0 011 1V21a1 1 0 01-1 1C11.85 22 2 12.15 2 1a1 1 0 011-1h3.5a1 1 0 011 1c0 1.27.19 2.47.56 3.59a1 1 0 01-.24 1l-2.2 2.2z" />
-                    </svg>
-                  </span>
-                  <div>
-                    <p className="font-semibold text-gray-900">Phone</p>
-                    <p>[Insert placeholder phone]</p>
+                    <p>
+                      33a St Peter&apos;s St
+                      <br />
+                      Ipswich IP1 1XF
+                    </p>
                   </div>
                 </div>
 
@@ -118,7 +110,7 @@ export default function ContactPage() {
                   </span>
                   <div>
                     <p className="font-semibold text-gray-900">Email</p>
-                    <p>[Insert placeholder email]</p>
+                    <p>anotherbowlipswich@gmail.com</p>
                   </div>
                 </div>
               </div>
@@ -155,7 +147,7 @@ export default function ContactPage() {
                 <div className="w-full aspect-[16/9]">
                   <iframe
                     title="Another Bowl map location"
-                    src="https://www.google.com/maps?q=Ipswich&output=embed"
+                    src="https://www.google.com/maps?q=33a%20St%20Peter%27s%20St%2C%20Ipswich%20IP1%201XF&output=embed"
                     className="w-full h-full"
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
