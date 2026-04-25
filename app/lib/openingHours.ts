@@ -10,6 +10,7 @@ export const BUSINESS_TIMEZONE = 'Europe/London';
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export type DaySchedule = { open: string; close: string } | { closed: true };
+export const OPENING_HOURS_SOURCE_NAME = 'app/lib/openingHours.ts::WEEKLY_HOURS';
 
 /**
  * Weekly hours (local wall clock in BUSINESS_TIMEZONE).
@@ -22,7 +23,7 @@ export const WEEKLY_HOURS: Record<Weekday, DaySchedule> = {
   3: { open: '08:00', close: '16:00' },
   4: { open: '08:00', close: '16:00' },
   5: { open: '08:00', close: '17:00' },
-  6: { open: '09:00', close: '16:00' },
+  6: { open: '09:00', close: '17:00' },
 };
 
 const SLOT_MINUTES = 15;
@@ -113,8 +114,18 @@ export type CollectionSlotsResult = {
 export function getCollectionSlotsForReferenceNow(reference: Date = new Date()): CollectionSlotsResult {
   const weekday = getWeekdayInBusinessZone(reference);
   const sched = WEEKLY_HOURS[weekday];
+  const debugLog = (label: string, details: Record<string, unknown>) => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[collection-slots] ${label}`, details);
+    }
+  };
 
   if ('closed' in sched && sched.closed) {
+    debugLog('day-closed', {
+      serverNowIso: new Date().toISOString(),
+      businessDate: getCalendarDateInBusinessZone(reference),
+      weekday,
+    });
     return {
       slots: [],
       dayClosed: true,
@@ -124,6 +135,11 @@ export function getCollectionSlotsForReferenceNow(reference: Date = new Date()):
   }
 
   if (!('open' in sched)) {
+    debugLog('day-closed-no-open-window', {
+      serverNowIso: new Date().toISOString(),
+      businessDate: getCalendarDateInBusinessZone(reference),
+      weekday,
+    });
     return {
       slots: [],
       dayClosed: true,
@@ -133,8 +149,16 @@ export function getCollectionSlotsForReferenceNow(reference: Date = new Date()):
   }
 
   const { open, close } = sched;
-  let slots = generateRawSlots(open, close);
+  const rawSlots = generateRawSlots(open, close);
+  let slots = rawSlots;
   if (slots.length === 0) {
+    debugLog('no-configured-slots', {
+      serverNowIso: new Date().toISOString(),
+      businessDate: getCalendarDateInBusinessZone(reference),
+      weekday,
+      open,
+      close,
+    });
     return {
       slots: [],
       dayClosed: false,
@@ -150,10 +174,51 @@ export function getCollectionSlotsForReferenceNow(reference: Date = new Date()):
     const nowM = getNowMinutesInBusinessZone(now);
     const minAllowed = nowM + LEAD_TIME_MINUTES;
     const rounded = Math.ceil(minAllowed / SLOT_MINUTES) * SLOT_MINUTES;
-    slots = slots.filter((s) => timeToMinutes(s) >= rounded);
+    const slotDiagnostics = rawSlots.map((time) => {
+      const minutes = timeToMinutes(time);
+      const kept = minutes >= rounded;
+      return {
+        time,
+        minutes,
+        kept,
+        filteredReason: kept ? null : 'past-or-before-lead-time-cutoff',
+      };
+    });
+    slots = slotDiagnostics.filter((entry) => entry.kept).map((entry) => entry.time);
+    debugLog('same-day-slot-filter', {
+      serverNowIso: now.toISOString(),
+      businessDate: getCalendarDateInBusinessZone(reference),
+      nowMinutes: nowM,
+      leadTimeMinutes: LEAD_TIME_MINUTES,
+      roundedCutoffMinutes: rounded,
+      roundedCutoffTime: minutesToTime(rounded),
+      open,
+      close,
+      candidateSlots: rawSlots,
+      filteredDiagnostics: slotDiagnostics,
+      remainingSlots: slots,
+    });
+  } else {
+    debugLog('non-today-reference-no-time-filter', {
+      serverNowIso: now.toISOString(),
+      referenceBusinessDate: getCalendarDateInBusinessZone(reference),
+      nowBusinessDate: getCalendarDateInBusinessZone(now),
+      open,
+      close,
+      candidateSlots: rawSlots,
+      remainingSlots: slots,
+    });
   }
 
   if (slots.length === 0) {
+    debugLog('no-slots-left-after-filter', {
+      serverNowIso: now.toISOString(),
+      businessDate: getCalendarDateInBusinessZone(reference),
+      weekday,
+      open,
+      close,
+      reason: 'all-slots-before-lead-time-or-past',
+    });
     return {
       slots: [],
       dayClosed: false,
@@ -168,6 +233,10 @@ export function getCollectionSlotsForReferenceNow(reference: Date = new Date()):
     noSlotsLeftToday: false,
     message: null,
   };
+}
+
+export function getDayScheduleForWeekday(weekday: Weekday): DaySchedule {
+  return WEEKLY_HOURS[weekday];
 }
 
 export function isValidCollectionTime(

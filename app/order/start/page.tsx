@@ -54,7 +54,12 @@ export default function OrderStartPage() {
   }, [pauseStatusLoaded, orderingPaused, router]);
 
   useEffect(() => {
+    if (selectedMode !== 'collection') {
+      setAvailabilityLoading(false);
+      return;
+    }
     let cancelled = false;
+    setAvailabilityLoading(true);
     (async () => {
       try {
         const response = await fetch('/api/ordering/collection-availability', { cache: 'no-store' });
@@ -73,7 +78,7 @@ export default function OrderStartPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedMode]);
 
   const availableCollectionTimes = useMemo(
     () => (availability?.slots ?? []).filter((slot) => slot.available).map((slot) => slot.time),

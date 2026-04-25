@@ -316,6 +316,13 @@ export async function POST(request: Request) {
   try {
     const attemptTimestamp = new Date().toISOString();
     const body = (await request.json()) as CreateOrderBody;
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[api/orders] incoming order payload summary', {
+        orderType: body.orderType,
+        tableNumber: body.tableNumber?.trim() || null,
+        collectionTime: body.collectionTime?.trim() || null,
+      });
+    }
 
     if (
       !body.orderNumber ||
@@ -338,37 +345,65 @@ export async function POST(request: Request) {
     }
 
     if (await getOnlineOrderingPausedFromDb()) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[api/orders] blocked: ordering paused');
+      }
       return NextResponse.json({ error: 'Ordering is currently paused.' }, { status: 403 });
     }
 
-    if (!isShopOpenForPublicOrderingNow()) {
-      return NextResponse.json(
-        { error: getPublicOrderingClosedMessage() },
-        { status: 400 }
-      );
-    }
-
     if (body.orderType === 'collection') {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[api/orders] collection validation branch entered', {
+          collectionTime: body.collectionTime?.trim() || null,
+        });
+      }
+      if (!isShopOpenForPublicOrderingNow()) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[api/orders] blocked: collection ordering closed now');
+        }
+        return NextResponse.json(
+          { error: getPublicOrderingClosedMessage() },
+          { status: 400 }
+        );
+      }
       if (!body.collectionTime?.trim()) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[api/orders] blocked: missing collectionTime for collection order');
+        }
         return NextResponse.json(
           { error: 'Collection time is required for collection orders.' },
           { status: 400 }
         );
       }
       if (!isValidCollectionTimeForOrderNow(body.collectionTime)) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[api/orders] blocked: invalid collectionTime');
+        }
         return NextResponse.json(
           { error: 'That collection time is not available. Choose a time within opening hours.' },
           { status: 400 }
         );
       }
       if (body.collectionTime && (await isCollectionTimeBookedOutForOrderNow(body.collectionTime))) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[api/orders] blocked: collection slot fully booked');
+        }
         return NextResponse.json(
           { error: 'That collection time is full. Please choose another time.' },
           { status: 400 }
         );
       }
     } else if (body.orderType === 'table') {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[api/orders] table validation branch entered', {
+          tableNumber: body.tableNumber?.trim() || null,
+          willRunCollectionChecks: false,
+        });
+      }
       if (!body.tableNumber?.trim()) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[api/orders] blocked: missing tableNumber for table order');
+        }
         return NextResponse.json(
           { error: 'Table number is required for table orders.' },
           { status: 400 }

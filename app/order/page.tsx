@@ -137,6 +137,7 @@ export default function OrderPage() {
     collectionTime: string;
     tableNumber: string;
   }>({ type: '', collectionTime: '', tableNumber: '' });
+  const [setupParamsLoaded, setSetupParamsLoaded] = useState(false);
   const [menuByCategory, setMenuByCategory] = useState<Record<string, OrderMenuItem[]>>({});
   const [menuLoading, setMenuLoading] = useState(true);
   const [basket, setBasket] = useState<BasketItem[]>([]);
@@ -278,7 +279,24 @@ export default function OrderPage() {
       collectionTime: current.get('collectionTime') ?? '',
       tableNumber: current.get('tableNumber') ?? '',
     });
+    setSetupParamsLoaded(true);
   }, []);
+
+  const hasValidOrderSetup = useMemo(() => {
+    if (setupParams.type === 'collection') {
+      return /^\d{2}:\d{2}$/.test(setupParams.collectionTime.trim());
+    }
+    if (setupParams.type === 'table') {
+      return setupParams.tableNumber.trim().length > 0;
+    }
+    return false;
+  }, [setupParams]);
+
+  useEffect(() => {
+    if (!setupParamsLoaded) return;
+    if (hasValidOrderSetup) return;
+    router.replace('/order/start');
+  }, [hasValidOrderSetup, router, setupParamsLoaded]);
 
   const getCategorySectionElement = useCallback(
     (category: string, preferredView: 'desktop' | 'mobile' | 'any' = 'any') => {
@@ -584,6 +602,8 @@ export default function OrderPage() {
   );
 
   return (
+    <>
+      {!setupParamsLoaded || !hasValidOrderSetup ? null : (
     <div className="min-h-screen scroll-smooth bg-gradient-to-br from-light via-white/80 to-light">
       <NavBar />
       <main className="max-w-6xl mx-auto px-6 sm:px-8 py-12 sm:py-16 pb-28 lg:pb-16">
@@ -929,5 +949,7 @@ export default function OrderPage() {
 
       <Footer />
     </div>
+      )}
+    </>
   );
 }

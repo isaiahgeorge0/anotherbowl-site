@@ -91,6 +91,8 @@ export default function CheckoutPage() {
     [availability]
   );
   const setupType = setupParams.type;
+  const isCollectionFlow = setupType === 'collection';
+  const isTableFlow = setupType === 'table';
   const setupCollectionTime = setupParams.collectionTime.trim();
   const setupTableNumber = setupParams.tableNumber.trim();
   const hasValidSetup = useMemo(() => {
@@ -193,7 +195,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (basket.length === 0 || !orderingStatusLoaded) return;
     if (orderingPaused) return;
-    if (!availability?.shopOpen) {
+    if (details.orderType === 'collection' && !availability?.shopOpen) {
       setPlaceOrderInView(false);
       return;
     }
@@ -322,11 +324,25 @@ export default function CheckoutPage() {
       return;
     }
     const lockedOrderType = setupType === 'table' ? 'table' : 'collection';
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[checkout-submit] order attempt', {
+        orderType: lockedOrderType,
+        tableNumber: setupTableNumber || null,
+        collectionTime: details.collectionTime || null,
+        willRunCollectionAvailabilityCheck: lockedOrderType === 'collection',
+      });
+    }
     if (orderingPaused) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[checkout-submit] blocked: ordering paused');
+      }
       setSubmitError('Ordering is currently paused.');
       return;
     }
-    if (!availability?.shopOpen) {
+    if (lockedOrderType === 'collection' && !availability?.shopOpen) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[checkout-submit] blocked: collection availability not open');
+      }
       setSubmitError(availability?.message?.trim() ?? 'Online ordering is not available right now.');
       return;
     }
@@ -398,11 +414,10 @@ export default function CheckoutPage() {
   const canCheckout =
     hasValidSetup &&
     orderingStatusLoaded &&
-    availabilityLoaded &&
     !orderingPaused &&
-    (availability?.shopOpen ?? false);
+    (isTableFlow || (availabilityLoaded && (availability?.shopOpen ?? false)));
   const collectionNoSlots: boolean = Boolean(
-    setupType === 'collection' &&
+    isCollectionFlow &&
       (availableCollectionTimes.length === 0 || !availability?.shopOpen)
   );
   const canSubmitOrder = canCheckout && (details.orderType !== 'collection' || !collectionNoSlots);
@@ -511,16 +526,16 @@ export default function CheckoutPage() {
                 Back to order menu
               </Link>
             </div>
-          ) : !availability ? (
+          ) : isCollectionFlow && !availability ? (
             <div className="rounded-xl border border-rose-200/80 bg-rose-50/85 p-5 text-rose-800/95">
               <p className="font-semibold">Could not load ordering options</p>
               <p className="text-sm mt-2">Please refresh the page and try again.</p>
             </div>
-          ) : !availability.shopOpen ? (
+          ) : isCollectionFlow && !(availability?.shopOpen ?? false) ? (
             <div className="rounded-xl border border-stone-200/80 bg-stone-50/70 p-5 text-stone-900">
               <p className="font-semibold">We are not taking online orders right now</p>
               <p className="mt-2 text-sm">
-                {availability.message?.trim() ??
+                {availability?.message?.trim() ??
                   'The café is currently closed for online collection and table orders. Please check back when we are open.'}
               </p>
               <Link href="/order" className="mt-4 inline-block font-semibold text-stone-900 hover:underline">

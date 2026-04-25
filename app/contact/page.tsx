@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import NavBar from '../components/NavBar';
 import Footer from '../components/Footer';
+import { getDayScheduleForWeekday, type Weekday } from '@/lib/openingHours';
 
 type FormErrors = {
   name?: string;
@@ -12,17 +13,29 @@ type FormErrors = {
 };
 
 const HOURS = [
-  { day: 'Monday', hours: '9:00am-5:00pm' },
-  { day: 'Tuesday', hours: '9:00am-5:00pm' },
-  { day: 'Wednesday', hours: '9:00am-5:00pm' },
-  { day: 'Thursday', hours: '9:00am-5:00pm' },
-  { day: 'Friday', hours: '9:00am-5:00pm' },
-  { day: 'Saturday', hours: '9:00am-5:00pm' },
-  { day: 'Sunday', hours: '9:00am-4:00pm' },
-];
+  { day: 'Monday', weekday: 1 },
+  { day: 'Tuesday', weekday: 2 },
+  { day: 'Wednesday', weekday: 3 },
+  { day: 'Thursday', weekday: 4 },
+  { day: 'Friday', weekday: 5 },
+  { day: 'Saturday', weekday: 6 },
+  { day: 'Sunday', weekday: 0 },
+] as const;
 
 const DAY_ORDER = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const CONTACT_EMAIL = 'anotherbowlipswich@gmail.com';
+
+const formatHoursLabel = (weekday: Weekday) => {
+  const schedule = getDayScheduleForWeekday(weekday);
+  if ('closed' in schedule) return 'Closed';
+  const formatTime = (value: string) => {
+    const [h, m] = value.split(':').map(Number);
+    const suffix = h >= 12 ? 'pm' : 'am';
+    const hour12 = h % 12 === 0 ? 12 : h % 12;
+    return `${hour12}:${String(m).padStart(2, '0')}${suffix}`;
+  };
+  return `${formatTime(schedule.open)}-${formatTime(schedule.close)}`;
+};
 
 export default function ContactPage() {
   const [name, setName] = useState('');
@@ -121,6 +134,7 @@ export default function ContactPage() {
               <ul className="space-y-2">
                 {HOURS.map((entry) => {
                   const isToday = entry.day === today;
+                  const hoursLabel = formatHoursLabel(entry.weekday);
                   return (
                     <li
                       key={entry.day}
@@ -133,7 +147,7 @@ export default function ContactPage() {
                         {isToday ? ' (Today)' : ''}
                       </span>
                       <span className={`text-sm sm:text-base ${isToday ? 'font-bold' : ''}`}>
-                        {entry.hours}
+                        {hoursLabel}
                       </span>
                     </li>
                   );
