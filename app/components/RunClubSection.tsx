@@ -3,9 +3,24 @@ import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
 import Image from 'next/image';
 
-export default function RunClubSection() {
+type RunClubSectionProps = {
+  announcement?: string;
+  nextEventDateTime?: string;
+  meetingPoint?: string;
+};
+
+export default function RunClubSection({
+  announcement,
+  nextEventDateTime,
+  meetingPoint,
+}: RunClubSectionProps) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const resolvedAnnouncement =
+    announcement?.trim() ||
+    "Every week, we gather for energizing runs through Ipswich. Whether you're a seasoned runner or just starting out, our inclusive community welcomes all paces and experience levels.";
+  const resolvedNextEvent = nextEventDateTime?.trim();
+  const resolvedMeetingPoint = meetingPoint?.trim();
 
   return (
     <motion.div
@@ -53,14 +68,19 @@ export default function RunClubSection() {
                             <h3 className="text-xl sm:text-2xl font-black text-gray-900 mb-3">
                   Weekly Community Runs
                 </h3>
-                <p className="text-sm sm:text-base text-gray-700 font-medium leading-relaxed mb-4">
-                  Every week, we gather for energizing runs through Ipswich. Whether you're a seasoned runner or just starting out, 
-                  our inclusive community welcomes all paces and experience levels.
+                <p className="whitespace-pre-line text-sm sm:text-base text-gray-700 font-medium leading-relaxed mb-4">
+                  {resolvedAnnouncement}
                 </p>
                 <p className="text-sm sm:text-base text-gray-700 font-medium leading-relaxed mb-6">
                   After each run, refuel with our signature bowls and smoothies while connecting with fellow runners. 
                   It's more than just running—it's building community through movement and healthy living.
                 </p>
+                {(resolvedNextEvent || resolvedMeetingPoint) && (
+                  <div className="rounded-lg border border-stone-200 bg-white/70 p-3 text-sm text-stone-700">
+                    {resolvedNextEvent && <p><span className="font-semibold">Next event:</span> {resolvedNextEvent}</p>}
+                    {resolvedMeetingPoint && <p><span className="font-semibold">Meeting point:</span> {resolvedMeetingPoint}</p>}
+                  </div>
+                )}
           </div>
 
           {/* Features */}

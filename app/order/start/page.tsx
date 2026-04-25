@@ -25,8 +25,33 @@ export default function OrderStartPage() {
   const [selectedMode, setSelectedMode] = useState<'collection' | 'table' | null>(null);
   const [availability, setAvailability] = useState<CollectionAvailability | null>(null);
   const [availabilityLoading, setAvailabilityLoading] = useState(true);
+  const [orderingPaused, setOrderingPaused] = useState(false);
+  const [pauseStatusLoaded, setPauseStatusLoaded] = useState(false);
   const [collectionTime, setCollectionTime] = useState('');
   const [tableNumber, setTableNumber] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch('/api/ordering/status', { cache: 'no-store' });
+        const payload = (await response.json()) as { paused?: boolean };
+        if (!cancelled) setOrderingPaused(Boolean(payload.paused));
+      } catch {
+        if (!cancelled) setOrderingPaused(false);
+      } finally {
+        if (!cancelled) setPauseStatusLoaded(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!pauseStatusLoaded || !orderingPaused) return;
+    router.replace('/order-paused');
+  }, [pauseStatusLoaded, orderingPaused, router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,6 +115,11 @@ export default function OrderStartPage() {
     <div className="min-h-screen bg-gradient-to-br from-light via-white/80 to-light">
       <NavBar />
       <main className="mx-auto max-w-4xl px-6 pb-16 pt-12 sm:px-8 sm:pt-16">
+        {orderingPaused && (
+          <div className="mb-4 rounded-xl border border-rose-200/80 bg-rose-50/90 p-3 text-sm font-semibold text-rose-900/95">
+            Ordering is currently paused
+          </div>
+        )}
         <section className="rounded-2xl border border-stone-200/70 bg-light/90 p-6 shadow-[0_8px_32px_rgba(28,26,24,0.06)] sm:p-8">
           <h1 className="text-3xl font-black text-stone-900 sm:text-4xl">Start your order</h1>
           <p className="mt-3 max-w-2xl text-sm text-stone-600 sm:text-base">

@@ -4,7 +4,17 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 
-export default function Hero() {
+type HeroProps = {
+  announcementTitle?: string;
+  shortMessage?: string;
+};
+
+export default function Hero({ announcementTitle, shortMessage }: HeroProps) {
+  const managedTitleRaw = announcementTitle ?? '';
+  const hasManagedTitle = managedTitleRaw.trim().length > 0;
+  const managedTitle = managedTitleRaw.replace(/\r\n/g, '\n');
+  const resolvedMessage = shortMessage?.trim() || 'Weekly run club. Made in Ipswich.';
+
   return (
     <section className="relative min-h-[540px] lg:min-h-[680px] flex flex-col items-center justify-center overflow-hidden hero-stable scroll-mt-20 md:scroll-mt-24">
       {/* Branded Background */}
@@ -41,12 +51,17 @@ export default function Hero() {
           className="mb-8"
         >
           <h2 className="text-4xl sm:text-6xl md:text-7xl font-black text-white mb-6 leading-tight drop-shadow-lg">
-            Fresh Food.
-            <br />
-            <span className="text-primary">Clean Energy.</span>
+            {hasManagedTitle && <span className="whitespace-pre-line">{managedTitle}</span>}
+            {!hasManagedTitle && (
+              <>
+                Fresh Food.
+                <br />
+                <span className="text-primary">Clean Energy.</span>
+              </>
+            )}
           </h2>
-          <p className="text-lg sm:text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed font-semibold drop-shadow-md">
-            Weekly run club. Made in Ipswich.
+          <p className="whitespace-pre-line text-lg sm:text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed font-semibold drop-shadow-md">
+            {resolvedMessage}
           </p>
           <div className="mt-6">
             <Link

@@ -21,16 +21,18 @@ export async function GET() {
   const shopOpen = slotResult.slots.length > 0;
   const message = shopOpen ? null : (slotResult.message?.trim() ?? getPublicOrderingClosedMessage());
 
-  const slots: SlotInfo[] = slotResult.slots.map((time) => {
+  const slotsWithCapacity: SlotInfo[] = slotResult.slots.map((time) => {
     const current = counts[time] ?? 0;
     const full = current >= max;
     return { time, current, max, available: !full, full };
   });
+  const selectableSlots = slotsWithCapacity.filter((slot) => slot.available);
 
   return NextResponse.json({
     shopOpen,
     message,
     maxPerSlot: max,
-    slots,
+    // Public selectable slots only (full slots are intentionally excluded).
+    slots: selectableSlots,
   });
 }

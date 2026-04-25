@@ -26,7 +26,8 @@ type ValidatedDiscount = {
   discounted_total: number;
 };
 
-type FormErrors = Partial<Record<keyof CheckoutDetails, string>>;
+type FormFieldKey = keyof CheckoutDetails | 'privacyAccepted';
+type FormErrors = Partial<Record<FormFieldKey, string>>;
 const primaryButtonClass =
   'button-order inline-flex items-center justify-center rounded-2xl px-6 py-4 font-bold shadow-md transition-all duration-200 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-light';
 const secondaryButtonClass =
@@ -42,6 +43,7 @@ const FIELD_ID_ORDER: (keyof FormErrors)[] = [
   'phone',
   'tableNumber',
   'collectionTime',
+  'privacyAccepted',
 ];
 
 export default function CheckoutPage() {
@@ -76,6 +78,8 @@ export default function CheckoutPage() {
   const [discountMessage, setDiscountMessage] = useState('');
   const [discountMessageType, setDiscountMessageType] = useState<'success' | 'error' | null>(null);
   const [appliedDiscount, setAppliedDiscount] = useState<ValidatedDiscount | null>(null);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const placeOrderButtonRef = useRef<HTMLButtonElement>(null);
   const placeOrderIORef = useRef<IntersectionObserver | null>(null);
   const validationHighlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -163,6 +167,11 @@ export default function CheckoutPage() {
   }, []);
 
   useEffect(() => {
+    if (!orderingStatusLoaded || !orderingPaused) return;
+    router.replace('/order-paused');
+  }, [orderingStatusLoaded, orderingPaused, router]);
+
+  useEffect(() => {
     const current = new URLSearchParams(window.location.search);
     setSetupParams({
       type: current.get('type') ?? '',
@@ -219,6 +228,10 @@ export default function CheckoutPage() {
     if (!details.customerName.trim()) nextErrors.customerName = 'Name is required.';
     if (!details.email.trim()) nextErrors.email = 'Email is required.';
     if (!details.phone.trim()) nextErrors.phone = 'Phone is required.';
+    if (!privacyAccepted) {
+      nextErrors.privacyAccepted =
+        'You must agree to the Privacy Policy and Terms & Conditions before placing your order.';
+    }
     if (details.orderType === 'collection') {
       if (availableCollectionTimes.length === 0) {
         nextErrors.collectionTime =
@@ -229,7 +242,7 @@ export default function CheckoutPage() {
     }
 
     return { ok: Object.keys(nextErrors).length === 0, errors: nextErrors };
-  }, [details, availableCollectionTimes, availability?.message]);
+  }, [details, availableCollectionTimes, availability?.message, privacyAccepted]);
 
   const scrollToFirstError = useCallback(
     (next: FormErrors) => {
@@ -238,7 +251,13 @@ export default function CheckoutPage() {
         if (key === 'tableNumber' && details.orderType !== 'table') continue;
         if (key === 'collectionTime' && details.orderType !== 'collection') continue;
         const fieldId =
-          key === 'collectionTime' ? 'collectionTime' : key === 'tableNumber' ? 'tableNumber' : String(key);
+          key === 'collectionTime'
+            ? 'collectionTime'
+            : key === 'tableNumber'
+              ? 'tableNumber'
+              : key === 'privacyAccepted'
+                ? 'privacyAccepted'
+                : String(key);
         if (validationHighlightTimerRef.current) {
           clearTimeout(validationHighlightTimerRef.current);
           validationHighlightTimerRef.current = null;
@@ -304,7 +323,7 @@ export default function CheckoutPage() {
     }
     const lockedOrderType = setupType === 'table' ? 'table' : 'collection';
     if (orderingPaused) {
-      setSubmitError('Online ordering is currently paused. Please try again later.');
+      setSubmitError('Ordering is currently paused.');
       return;
     }
     if (!availability?.shopOpen) {
@@ -336,6 +355,16 @@ export default function CheckoutPage() {
           items: basket,
           total: subtotal,
           notes: details.notes,
+          privacyAccepted,
+          marketingOptIn,
+          discount: appliedDiscount
+            ? {
+                code: appliedDiscount.code,
+                discountType: appliedDiscount.discount_type,
+                discountValue: appliedDiscount.discount_value,
+                discountAmount: appliedDiscount.discount_amount,
+              }
+            : undefined,
         }),
       });
 
@@ -730,6 +759,59 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
+              <div className="rounded-xl border border-stone-200/80 bg-stone-50/70 p-3">
+                <label
+                  htmlFor="privacyAccepted"
+                  className="flex cursor-pointer items-start gap-3 text-sm text-stone-800"
+                >
+                  <input
+                    id="privacyAccepted"
+                    name="privacyAccepted"
+                    type="checkbox"
+                    checked={privacyAccepted}
+                    onChange={(event) => setPrivacyAccepted(event.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-stone-300 text-stone-900 focus:ring-2 focus:ring-primary/35"
+                    aria-invalid={Boolean(errors.privacyAccepted) || undefined}
+                    aria-describedby={errors.privacyAccepted ? 'privacyAccepted-error' : undefined}
+                  />
+                  <span>
+                    I agree to the{' '}
+                    <Link href="/privacy" className="font-semibold text-stone-900 underline hover:text-stone-700">
+                      Privacy Policy
+                    </Link>{' '}
+                    and{' '}
+                    <Link href="/terms" className="font-semibold text-stone-900 underline hover:text-stone-700">
+                      Terms &amp; Conditions
+                    </Link>
+                  </span>
+                </label>
+                {errors.privacyAccepted && (
+                  <p id="privacyAccepted-error" className="mt-2 text-sm text-rose-700/90" role="alert">
+                    {errors.privacyAccepted}
+                  </p>
+                )}
+              </div>
+              <div className="rounded-xl border border-stone-200/80 bg-stone-50/70 p-3">
+                <label
+                  htmlFor="marketingOptIn"
+                  className="flex cursor-pointer items-start gap-3 text-sm text-stone-800"
+                >
+                  <input
+                    id="marketingOptIn"
+                    name="marketingOptIn"
+                    type="checkbox"
+                    checked={marketingOptIn}
+                    onChange={(event) => setMarketingOptIn(event.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-stone-300 text-stone-900 focus:ring-2 focus:ring-primary/35"
+                  />
+                  <span>
+                    I&apos;d like to receive email updates, offers, and news from Another Bowl.
+                    <span className="mt-1 block text-xs text-stone-600">
+                      You can unsubscribe at any time.
+                    </span>
+                  </span>
+                </label>
+              </div>
               <button
                 ref={placeOrderButtonRef}
                 type="submit"

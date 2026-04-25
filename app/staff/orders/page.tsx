@@ -11,22 +11,29 @@ import { supabaseServer } from '@/lib/supabaseServer';
 import type { PersistedOrder, StaffOrderStatus } from '@/types/order';
 import type { PrintableDocumentType } from '@/types/printing';
 
-const allStatuses: StaffOrderStatus[] = ['new', 'preparing', 'ready', 'completed', 'cancelled'];
 const primaryButtonClass =
   'button-staff rounded-xl px-4 py-2 shadow-sm active:scale-[0.98]';
 const secondaryButtonClass =
   'button-staff rounded-xl px-4 py-2 shadow-sm';
-const selectClass =
-  'rounded-lg border border-stone-200/90 bg-light/90 px-3 py-2 font-medium text-stone-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25';
 const noticeBoxClass = 'rounded-xl border border-amber-200/80 bg-amber-50/90 p-4 text-amber-900/90';
 const statusOrder: StaffOrderStatus[] = ['new', 'preparing', 'ready', 'completed', 'cancelled'];
-const statusLabels: Record<StaffOrderStatus, string> = {
-  new: 'New',
-  preparing: 'Preparing',
-  ready: 'Ready',
-  completed: 'Completed',
-  cancelled: 'Cancelled',
-};
+
+function formatOrderStatus(status: string) {
+  switch (status) {
+    case 'new':
+      return 'New';
+    case 'preparing':
+      return 'Preparing';
+    case 'ready':
+      return 'Ready';
+    case 'completed':
+      return 'Completed';
+    case 'cancelled':
+      return 'Cancelled';
+    default:
+      return status;
+  }
+}
 const statusSectionClass: Record<StaffOrderStatus, string> = {
   new: 'border-brandPink/35 bg-brandPink/8',
   preparing: 'border-sky-300/50 bg-sky-50/60',
@@ -58,8 +65,6 @@ const touchActionButtonClass =
 const touchPrimary = `${primaryButtonClass} ${touchActionButtonClass}`;
 const touchSecondary = `${secondaryButtonClass} ${touchActionButtonClass}`;
 
-const touchSelect = `${selectClass} min-h-[44px] w-full py-2.5 sm:min-w-[8rem] sm:w-full`;
-
 export default function StaffOrdersPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<PersistedOrder[]>([]);
@@ -79,12 +84,27 @@ export default function StaffOrdersPage() {
   const [maxOrdersPerSlotInput, setMaxOrdersPerSlotInput] = useState('4');
   const [slotCapacityLoading, setSlotCapacityLoading] = useState(false);
   const [slotCapacityError, setSlotCapacityError] = useState('');
+  const [collectionCapacityToday, setCollectionCapacityToday] = useState<Array<{
+    slot: string;
+    booked: number;
+    full: boolean;
+  }>>([]);
   const knownOrderIdsRef = useRef<Set<string>>(new Set());
   const hasInitializedKnownOrdersRef = useRef(false);
   const hasUserInteractedRef = useRef(false);
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   /** Key: order id string, value: target status just applied (UI flash only). */
   const [statusActionFlash, setStatusActionFlash] = useState<Partial<Record<string, StaffOrderStatus>>>({});
   const statusFlashClearTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const getDiscountNote = useCallback((notes: string | null | undefined) => {
+    if (!notes?.trim()) return null;
+    const line = notes
+      .split('\n')
+      .map((entry) => entry.trim())
+      .find((entry) => entry.toLowerCase().startsWith('discount applied:'));
+    return line ?? null;
+  }, []);
 
   // Supabase auth gate replaces temporary route protection for operational security.
   // x-staff-key remains temporarily in API requests until backend auth migration is complete.
@@ -190,6 +210,54 @@ export default function StaffOrdersPage() {
     }
   }, [getStaffAuthHeaders, isAuthenticated]);
 
+  const fetchCollectionCapacityToday = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      const res = await fetch('/api/ordering/collection-availability', { cache: 'no-store' });
+      if (!res.ok) {
+        setCollectionCapacityToday([]);
+        return;
+      }
+      const data = (await res.json()) as {
+        slots?: Array<{ time: string; current: number; max: number; available: boolean }>;
+      };
+      const fromApi = (data.slots ?? []).map((slot) => ({
+        slot: slot.time,
+        booked: slot.current,
+        full: slot.current >= slot.max,
+      }));
+
+      const todayBySlot = new Map<string, number>();
+      for (const order of orders) {
+        if (order.orderType !== 'collection' || order.status === 'cancelled') continue;
+        const t = order.collectionTime?.trim();
+        if (!t) continue;
+        todayBySlot.set(t, (todayBySlot.get(t) ?? 0) + 1);
+      }
+
+      const merged = new Map<string, { slot: string; booked: number; full: boolean }>();
+      for (const entry of fromApi) {
+        merged.set(entry.slot, entry);
+      }
+      for (const [slot, booked] of todayBySlot.entries()) {
+        if (!merged.has(slot)) {
+          merged.set(slot, { slot, booked, full: booked >= maxOrdersPerSlot });
+        } else {
+          const existing = merged.get(slot)!;
+          merged.set(slot, {
+            slot,
+            booked: Math.max(existing.booked, booked),
+            full: Math.max(existing.booked, booked) >= maxOrdersPerSlot,
+          });
+        }
+      }
+      const sorted = [...merged.values()].sort((a, b) => a.slot.localeCompare(b.slot));
+      setCollectionCapacityToday(sorted);
+    } catch {
+      setCollectionCapacityToday([]);
+    }
+  }, [isAuthenticated, orders, maxOrdersPerSlot]);
+
   const saveSlotCapacity = useCallback(async () => {
     const parsed = Number.parseInt(maxOrdersPerSlotInput.trim(), 10);
     if (!Number.isFinite(parsed) || parsed < 1 || parsed > 1000) {
@@ -262,12 +330,12 @@ export default function StaffOrdersPage() {
       setError('');
       setLoading(true);
       const authHeaders = await getStaffAuthHeaders();
-      const response = await fetch('/api/orders', {
+      const response = await fetch('/api/staff/orders', {
         cache: 'no-store',
         headers: authHeaders,
       });
       if (!response.ok) {
-        console.error('GET /api/orders failed.', {
+        console.error('GET /api/staff/orders failed.', {
           status: response.status,
           statusText: response.statusText,
         });
@@ -296,6 +364,26 @@ export default function StaffOrdersPage() {
 
   useEffect(() => {
     if (!isAuthenticated) return;
+
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+
+    pollingIntervalRef.current = setInterval(() => {
+      void fetchOrders();
+    }, 5000);
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [fetchOrders, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
     void fetchOnlineOrderingPause();
   }, [isAuthenticated, fetchOnlineOrderingPause]);
 
@@ -303,6 +391,11 @@ export default function StaffOrdersPage() {
     if (!isAuthenticated) return;
     void fetchSlotCapacity();
   }, [isAuthenticated, fetchSlotCapacity]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    void fetchCollectionCapacityToday();
+  }, [isAuthenticated, fetchCollectionCapacityToday]);
 
   useEffect(() => {
     const enableAudioAfterInteraction = () => {
@@ -400,10 +493,28 @@ export default function StaffOrdersPage() {
   }, [orders, playAlertTone]);
 
   const totals = useMemo(
-    () => ({
-      total: orders.length,
-      active: orders.filter((order) => ['new', 'preparing', 'ready'].includes(order.status)).length,
-    }),
+    () => {
+      const today = new Date();
+      const y = today.getFullYear();
+      const m = today.getMonth();
+      const d = today.getDate();
+      return {
+        total: orders.length,
+        active: orders.filter((order) => ['new', 'preparing', 'ready'].includes(order.status)).length,
+        new: orders.filter((order) => order.status === 'new').length,
+        preparing: orders.filter((order) => order.status === 'preparing').length,
+        ready: orders.filter((order) => order.status === 'ready').length,
+        completedToday: orders.filter((order) => {
+          if (order.status !== 'completed') return false;
+          const created = new Date(order.createdAt);
+          return (
+            created.getFullYear() === y &&
+            created.getMonth() === m &&
+            created.getDate() === d
+          );
+        }).length,
+      };
+    },
     [orders]
   );
 
@@ -457,7 +568,7 @@ export default function StaffOrdersPage() {
 
   const updateStatus = async (orderId: string | number, status: StaffOrderStatus) => {
     const authHeaders = await getStaffAuthHeaders();
-    const response = await fetch(`/api/orders/${encodeURIComponent(String(orderId))}`, {
+    const response = await fetch(`/api/staff/orders/${encodeURIComponent(String(orderId))}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -465,8 +576,12 @@ export default function StaffOrdersPage() {
       },
       body: JSON.stringify({ status }),
     });
-    if (!response.ok) return;
-    setOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, status } : order)));
+    if (!response.ok) {
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      setError(data.error ?? 'Could not update order status.');
+      return;
+    }
+    await fetchOrders();
   };
 
   const runStaffStatusAction = (orderId: string | number, toStatus: StaffOrderStatus) => {
@@ -618,17 +733,17 @@ export default function StaffOrdersPage() {
             {orderingPauseError && <p className="text-sm text-red-600 mt-3">{orderingPauseError}</p>}
           </div>
 
-          <div className="mb-6 rounded-xl border border-stone-200/80 bg-mint/20 p-4 sm:p-5">
-            <p className="text-sm font-bold text-stone-900">Max orders per collection slot</p>
-            <p className="mt-1 max-w-2xl text-sm text-stone-600">
+          <div className="mb-5 rounded-xl border border-stone-200/80 bg-mint/20 p-3.5 sm:p-4">
+            <p className="text-sm font-bold text-stone-900">Collection capacity controls</p>
+            <p className="mt-1 max-w-2xl text-xs text-stone-600 sm:text-sm">
               Limits how many online collection orders can be booked for each 15-minute window. Full slots are
               hidden from customers at checkout. Default is 4 if not set in the database.
             </p>
-            <div className="mt-3 flex flex-col sm:flex-row sm:items-end gap-3">
-              <div className="min-w-0 flex-1 max-w-xs">
+            <div className="mt-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-[minmax(0,14rem)_auto] sm:items-end">
+              <div className="min-w-0">
                 <label
                   htmlFor="max-orders-per-slot"
-                  className="mb-1 block text-xs font-semibold text-stone-800"
+                  className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-stone-700"
                 >
                   Max per slot
                 </label>
@@ -640,7 +755,7 @@ export default function StaffOrdersPage() {
                   inputMode="numeric"
                   value={maxOrdersPerSlotInput}
                   onChange={(e) => setMaxOrdersPerSlotInput(e.target.value)}
-                  className="w-full rounded-lg border border-stone-200/90 bg-light/90 px-3 py-2 text-stone-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full rounded-lg border border-stone-200/90 bg-light/90 px-3 py-2 text-sm text-stone-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   disabled={slotCapacityLoading}
                 />
               </div>
@@ -648,17 +763,45 @@ export default function StaffOrdersPage() {
                 type="button"
                 onClick={() => void saveSlotCapacity()}
                 disabled={slotCapacityLoading}
-                className={primaryButtonClass}
+                className={`${primaryButtonClass} min-h-[40px] px-4 py-2 text-sm`}
               >
                 {slotCapacityLoading ? 'Saving…' : 'Save'}
               </button>
             </div>
-            {slotCapacityError && <p className="text-sm text-red-600 mt-2">{slotCapacityError}</p>}
+            {slotCapacityError && <p className="text-sm text-red-600 mt-1.5">{slotCapacityError}</p>}
             {!slotCapacityError && maxOrdersPerSlot > 0 && (
-              <p className="mt-2 text-xs text-stone-500">
+              <p className="mt-1.5 text-xs text-stone-500">
                 Current setting: {maxOrdersPerSlot} per slot (after save or load).
               </p>
             )}
+            <div className="mt-3 rounded-lg border border-stone-200/70 bg-white/75 p-2.5 sm:p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-600">
+                Collection slot bookings today
+              </p>
+              {collectionCapacityToday.length === 0 ? (
+                <p className="mt-1.5 text-sm text-stone-600">No collection slot bookings yet.</p>
+              ) : (
+                <ul className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+                  {collectionCapacityToday.map((entry) => (
+                    <li
+                      key={entry.slot}
+                      className="flex items-center justify-between rounded-md border border-stone-200/70 bg-light/70 px-2.5 py-1.5 text-sm"
+                    >
+                      <span className="font-medium tabular-nums text-stone-800">{entry.slot}</span>
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                          entry.full
+                            ? 'bg-rose-100 text-rose-900'
+                            : 'bg-emerald-100 text-emerald-900'
+                        }`}
+                      >
+                        {entry.booked}/{maxOrdersPerSlot}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
 
           {newOrderNotice && (
@@ -667,19 +810,34 @@ export default function StaffOrdersPage() {
             </div>
           )}
 
-          <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-stone-200/75 bg-light/80 p-4">
-            <p className="text-stone-900">
-              <span className="font-semibold">Total orders:</span> {totals.total}
+          <div className="sticky top-20 z-20 mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-stone-200/75 bg-light/95 p-4 shadow-[0_6px_20px_rgba(28,26,24,0.08)] backdrop-blur-sm">
+            <p className="w-full text-xs font-medium text-stone-500">
+              Auto-refreshing every 5 seconds
             </p>
-            <p className="text-stone-900">
-              <span className="font-semibold">Active orders:</span> {totals.active}
-            </p>
+            <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-lg border border-brandPink/40 bg-brandPink/10 px-3 py-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-stone-700">New orders</p>
+                <p className="mt-1 text-xl font-black text-stone-900">{totals.new}</p>
+              </div>
+              <div className="rounded-lg border border-sky-300/50 bg-sky-50/70 px-3 py-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-stone-700">Preparing</p>
+                <p className="mt-1 text-xl font-black text-stone-900">{totals.preparing}</p>
+              </div>
+              <div className="rounded-lg border border-emerald-300/50 bg-emerald-50/70 px-3 py-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-stone-700">Ready</p>
+                <p className="mt-1 text-xl font-black text-stone-900">{totals.ready}</p>
+              </div>
+              <div className="rounded-lg border border-stone-300/60 bg-stone-100/70 px-3 py-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-stone-700">Completed today</p>
+                <p className="mt-1 text-xl font-black text-stone-900">{totals.completedToday}</p>
+              </div>
+            </div>
             <button
               type="button"
               onClick={fetchOrders}
-              className={`ml-auto min-h-[44px] inline-flex items-center justify-center px-4 ${secondaryButtonClass}`}
+              className={`min-h-[44px] inline-flex items-center justify-center px-4 ${secondaryButtonClass}`}
             >
-              Refresh
+              Refresh orders
             </button>
           </div>
 
@@ -692,13 +850,17 @@ export default function StaffOrdersPage() {
               <section key={status} className={`rounded-xl border p-4 sm:p-5 ${statusSectionClass[status]}`}>
                 <div className="mb-4">
                   <h2 className="text-xl font-bold text-stone-900">
-                    {statusLabels[status]}{' '}
+                    {formatOrderStatus(status)}{' '}
                     <span className="text-stone-600">({groupedOrders[status].length})</span>
                   </h2>
-                  <p className="mt-0.5 text-sm font-medium text-stone-700">{statusBannerLabel[status]}</p>
+                  <p className="mt-0.5 text-sm font-medium text-stone-700">
+                    {statusBannerLabel[status]}
+                  </p>
                 </div>
                 {groupedOrders[status].length === 0 ? (
-                  <p className="text-sm text-stone-600">No {statusLabels[status].toLowerCase()} orders.</p>
+                  <p className="text-sm text-stone-600">
+                    No {formatOrderStatus(status).toLowerCase()} orders.
+                  </p>
                 ) : (
                   <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
                     {displayOrdersByStatus[status].map((order) => {
@@ -732,10 +894,18 @@ export default function StaffOrdersPage() {
                           <div className="sticky top-0 z-10 -mx-px -mt-px mb-0 rounded-t-xl border-b border-stone-200/70 bg-light/95 px-4 py-3 backdrop-blur-sm sm:px-5 sm:py-3.5">
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
-                                <h3 className="text-lg font-bold leading-tight text-stone-900 sm:text-xl">
+                                <h3 className="text-xl font-black leading-tight tracking-tight text-stone-900 sm:text-2xl">
                                   {order.orderNumber}
                                 </h3>
-                                <p className="text-sm font-semibold text-stone-800">{order.customerName}</p>
+                                <p className="mt-1 text-sm font-semibold text-stone-800">
+                                  {order.orderType === 'table' ? 'Table service' : 'Collection'}
+                                  <span className="mx-1.5 text-stone-400">•</span>
+                                  <span className="tabular-nums">
+                                    {order.orderType === 'table'
+                                      ? `Table ${order.tableNumber || '-'}`
+                                      : `Collection ${order.collectionTime || '-'}`}
+                                  </span>
+                                </p>
                               </div>
                               <time
                                 className="shrink-0 text-sm font-semibold text-stone-700 tabular-nums"
@@ -770,13 +940,13 @@ export default function StaffOrdersPage() {
                           <div className="space-y-3 px-4 pb-4 pt-2 sm:px-5 sm:pb-5 sm:pt-3">
                             <div className="space-y-1 text-sm text-stone-700">
                               <p>
-                                <span className="font-semibold">Order type:</span> {order.orderType}
+                                <span className="font-semibold">Customer:</span> {order.customerName || '-'}
                               </p>
                               <p>
-                                <span className="font-semibold">
-                                  {order.orderType === 'table' ? 'Table number:' : 'Collection time:'}
-                                </span>{' '}
-                                {order.orderType === 'table' ? order.tableNumber || '-' : order.collectionTime || '-'}
+                                <span className="font-semibold">Phone:</span> {order.phone?.trim() || '-'}
+                              </p>
+                              <p className="break-all">
+                                <span className="font-semibold">Email:</span> {order.email?.trim() || '-'}
                               </p>
                               <p>
                                 <span className="font-semibold">Payment status:</span> {order.paymentStatus}{' '}
@@ -790,6 +960,12 @@ export default function StaffOrdersPage() {
                                 <p className="mt-1 text-sm font-medium whitespace-pre-wrap">
                                   {order.notes.trim()}
                                 </p>
+                              </div>
+                            )}
+                            {getDiscountNote(order.notes) && (
+                              <div className="rounded-lg border border-emerald-200/80 bg-emerald-50/90 p-3 text-emerald-900/95">
+                                <p className="text-xs font-bold uppercase tracking-wide">Discount</p>
+                                <p className="mt-1 text-sm font-medium break-words">{getDiscountNote(order.notes)}</p>
                               </div>
                             )}
 
@@ -830,20 +1006,6 @@ export default function StaffOrdersPage() {
                                   Cancel
                                 </button>
                               )}
-                              <select
-                                value={order.status}
-                                onChange={(event) =>
-                                  runStaffStatusAction(order.id, event.target.value as StaffOrderStatus)
-                                }
-                                className={touchSelect}
-                                aria-label={`Update order ${order.orderNumber} status`}
-                              >
-                                {allStatuses.map((entryStatus) => (
-                                  <option key={entryStatus} value={entryStatus}>
-                                    {statusLabels[entryStatus]} ({entryStatus})
-                                  </option>
-                                ))}
-                              </select>
                               <button
                                 type="button"
                                 onClick={() => openPrintDocumentWindow(order.id, 'customer_receipt', false)}

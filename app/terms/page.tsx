@@ -6,44 +6,50 @@ export default function TermsPage() {
     <div className="min-h-screen scroll-smooth bg-gradient-to-br from-light via-white to-light">
       <NavBar />
       <main className="max-w-4xl mx-auto px-6 sm:px-8 py-16 sm:py-24">
-        <article className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 sm:p-10">
-          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 mb-6">Terms of Service</h1>
-          <div className="space-y-8 text-gray-700 leading-relaxed">
+        <article className="rounded-2xl border border-stone-200/80 bg-white p-7 shadow-[0_8px_28px_rgba(28,26,24,0.08)] sm:p-10">
+          <h1 className="mb-3 text-3xl font-black text-stone-900 sm:text-4xl">Terms &amp; Conditions</h1>
+          <p className="mb-8 text-sm text-stone-600 sm:text-base">
+            This placeholder terms page outlines baseline ordering and website terms for Another Bowl.
+          </p>
+          <div className="space-y-8 text-stone-700 leading-relaxed">
             <section>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">Website Use</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-stone-900 mb-3">Ordering terms</h2>
               <p>
-                By accessing this website, you agree to use it lawfully and in a way that does not
-                interfere with the website, its content, or other visitors.
+                By placing an order, you confirm that your details are accurate and that you are authorized
+                to place the order. Availability, menu items, and pricing may change without notice.
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">
-                Intellectual Property
-              </h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-stone-900 mb-3">Collection terms</h2>
               <p>
-                All website content, including text, branding, and imagery, is owned by or licensed
-                to Another Bowl unless stated otherwise. Reproduction or redistribution without
-                permission is not allowed.
+                Collection times are estimates and may vary based on kitchen demand. Customers are
+                responsible for collecting orders promptly and verifying order details at pickup.
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">
-                Limitation of Liability
-              </h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-stone-900 mb-3">Payment terms</h2>
               <p>
-                We aim to keep website information accurate and up to date, but we do not guarantee
-                that all content will always be complete or error-free. Another Bowl is not liable
-                for losses resulting from use of this website.
+                Payment processing and confirmation behavior may change as the live payment integration is
+                introduced. Promotional discounts are subject to validation rules and may be revoked if
+                misused.
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">Contact Details</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-stone-900 mb-3">Liability disclaimer</h2>
+              <p>
+                Another Bowl provides the website and ordering service on an as-available basis and is not
+                liable for indirect losses, service interruptions, or delays beyond reasonable control.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl sm:text-2xl font-bold text-stone-900 mb-3">Contact details</h2>
               <p>
                 For terms-related questions, email us at{' '}
-                <a href="mailto:anotherbowlipswich@gmail.com" className="text-primary hover:underline">
+                <a href="mailto:anotherbowlipswich@gmail.com" className="text-primary font-semibold hover:underline">
                   anotherbowlipswich@gmail.com
                 </a>
                 .

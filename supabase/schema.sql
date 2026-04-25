@@ -45,6 +45,8 @@ create table if not exists public.orders (
   total numeric not null,
   status text not null default 'new',
   payment_status text not null default 'pending',
+  privacy_accepted boolean not null default false,
+  marketing_opt_in boolean not null default false,
   notes text,
   receipt_snapshot jsonb,
   created_at timestamptz not null default now()
@@ -52,6 +54,10 @@ create table if not exists public.orders (
 
 alter table public.orders
 add column if not exists receipt_snapshot jsonb;
+alter table public.orders
+add column if not exists privacy_accepted boolean not null default false;
+alter table public.orders
+add column if not exists marketing_opt_in boolean not null default false;
 
 create table if not exists public.order_items (
   id uuid primary key default gen_random_uuid(),

@@ -75,6 +75,8 @@ export type PersistedOrder = {
   total: number;
   status: StaffOrderStatus;
   paymentStatus: PaymentStatus;
+  privacyAccepted?: boolean;
+  marketingOptIn?: boolean;
   createdAt: string;
   notes?: string | null;
   receiptSnapshot?: ReceiptSnapshot | null;

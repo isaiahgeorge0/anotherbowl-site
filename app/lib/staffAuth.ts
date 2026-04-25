@@ -33,15 +33,6 @@ const hasLegacyStaffKey = (request: Request) => {
   return Boolean(expectedKey && providedKey && expectedKey === providedKey);
 };
 
-const devLog = (message: string, payload?: unknown) => {
-  if (process.env.NODE_ENV === 'production') return;
-  if (typeof payload === 'undefined') {
-    console.log(`[staffAuth] ${message}`);
-    return;
-  }
-  console.log(`[staffAuth] ${message}`, payload);
-};
-
 export const authenticateStaffRequest = async (request: Request): Promise<StaffAuthResult> => {
   // Authentication checks identity (is this request tied to a real signed-in user?).
   // Authorization checks permission (does this user have an allowed staff role?).
@@ -50,17 +41,12 @@ export const authenticateStaffRequest = async (request: Request): Promise<StaffA
   // This hardens staff API access without exposing server-only keys to the browser.
   const authHeader = request.headers.get('authorization');
   const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
-  console.log('[staffAuth] bearer token received:', Boolean(bearerToken));
 
   if (bearerToken) {
     const { data, error } = await supabaseServer.auth.getUser(bearerToken);
     if (!error && data.user) {
       const email = data.user.email?.toLowerCase() ?? '';
       const metadataRole = canonicalizeStaffRole(data.user.user_metadata?.role);
-      devLog('authenticated supabase user', {
-        userId: data.user.id,
-        email: data.user.email ?? null,
-      });
 
       try {
         // Service-role client is server-only and bypasses RLS for protected staff authorization lookups.
@@ -123,14 +109,6 @@ export const authenticateStaffRequest = async (request: Request): Promise<StaffA
         }
 
         const dbRole = canonicalizeStaffRole(staffRow?.role);
-        devLog('staff_users lookup result', {
-          matchedBy: matchedBy ?? 'none',
-          rowId: staffRow?.id ?? null,
-          rowEmail: staffRow?.email ?? null,
-          rowRole: staffRow?.role ?? null,
-          canonicalRole: dbRole,
-          duplicateEmailRows,
-        });
         if (dbRole) {
           const rowEmail = typeof staffRow?.email === 'string' ? staffRow.email : data.user.email ?? null;
           return {
@@ -148,11 +126,6 @@ export const authenticateStaffRequest = async (request: Request): Promise<StaffA
       }
 
       if (metadataRole) {
-        devLog('falling back to metadata role', {
-          metadataRole,
-          userId: data.user.id,
-          email: data.user.email ?? null,
-        });
         return {
           ok: true,
           userId: data.user.id,

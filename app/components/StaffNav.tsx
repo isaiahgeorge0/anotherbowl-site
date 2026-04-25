@@ -17,6 +17,7 @@ const staffLinks = [
   { href: '/staff/orders', label: 'Orders' },
   { href: '/staff/dashboard', label: 'Dashboard' },
   { href: '/staff/menu', label: 'Menu' },
+  { href: '/staff/content', label: 'Content' },
   { href: '/staff/discounts', label: 'Discounts' },
 ] as const;
 

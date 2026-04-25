@@ -13,6 +13,7 @@ import { createReceiptSnapshot } from '@/lib/receipt';
 import { authenticateStaffRequest, unauthorizedStaffResponse } from '@/lib/staffAuth';
 import { ORDER_MENU } from '@/data/orderMenu';
 import type { BasketItem, CheckoutOrderType, PersistedOrder } from '@/types/order';
+import { sendOrderConfirmationEmail } from '../../../lib/email/sendOrderConfirmation';
 
 type CreateOrderBody = {
   orderNumber: string;
@@ -25,6 +26,14 @@ type CreateOrderBody = {
   items: BasketItem[];
   total: number;
   notes?: string;
+  privacyAccepted?: boolean;
+  marketingOptIn?: boolean;
+  discount?: {
+    code: string;
+    discountType: 'percent' | 'fixed';
+    discountValue: number;
+    discountAmount: number;
+  };
 };
 
 type ValidationResult =
@@ -73,7 +82,6 @@ type CatalogProduct = {
   id: string;
   name: string;
   price: number;
-  category: string;
   is_active: boolean;
 };
 
@@ -87,7 +95,7 @@ const fetchTrustedProductsFromSupabase = async (itemIds: string[]) => {
     const productClient = isSupabaseServiceConfigured() ? getSupabaseServiceClient() : supabaseServer;
     const { data, error } = await productClient
       .from('products')
-      .select('id,name,price,category,is_active')
+      .select('id,name,price,is_active')
       .in('id', ids);
 
     if (error) {
@@ -140,7 +148,9 @@ const validateAndNormalizeOrder = async (
           id: trustedSupabaseItem.id,
           name: trustedSupabaseItem.name,
           price: Number(trustedSupabaseItem.price),
-          category: trustedSupabaseItem.category,
+          // Category is not security-sensitive; keep trusted pricing/name from DB,
+          // and preserve the existing client-side grouping label for display/receipts.
+          category: entry?.item?.category ?? 'MENU',
           available: trustedSupabaseItem.is_active,
           modifiers: [] as string[],
           description: '',
@@ -320,8 +330,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid order payload.' }, { status: 400 });
     }
 
+    if (body.privacyAccepted !== true) {
+      return NextResponse.json(
+        { error: 'You must agree to the Privacy Policy and Terms & Conditions before placing your order.' },
+        { status: 400 }
+      );
+    }
+
     if (await getOnlineOrderingPausedFromDb()) {
-      return NextResponse.json({ error: 'Online ordering is paused.' }, { status: 403 });
+      return NextResponse.json({ error: 'Ordering is currently paused.' }, { status: 403 });
     }
 
     if (!isShopOpenForPublicOrderingNow()) {
@@ -332,6 +349,12 @@ export async function POST(request: Request) {
     }
 
     if (body.orderType === 'collection') {
+      if (!body.collectionTime?.trim()) {
+        return NextResponse.json(
+          { error: 'Collection time is required for collection orders.' },
+          { status: 400 }
+        );
+      }
       if (!isValidCollectionTimeForOrderNow(body.collectionTime)) {
         return NextResponse.json(
           { error: 'That collection time is not available. Choose a time within opening hours.' },
@@ -344,18 +367,60 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
+    } else if (body.orderType === 'table') {
+      if (!body.tableNumber?.trim()) {
+        return NextResponse.json(
+          { error: 'Table number is required for table orders.' },
+          { status: 400 }
+        );
+      }
+    } else {
+      return NextResponse.json(
+        { error: 'Order type must be either collection or table.' },
+        { status: 400 }
+      );
     }
 
     const validation = await validateAndNormalizeOrder(body.items, body.total);
     if (!validation.ok) {
+      const hasInvalidItems = validation.invalidProductIds.length > 0;
+      const hasQuantityIssues = validation.quantityErrors.length > 0;
+      const hasTotalMismatch = Boolean(validation.totalMismatch);
+      let validationMessage = 'Order validation failed. Please review your order and try again.';
+      if (hasInvalidItems) {
+        validationMessage =
+          'Some basket items are no longer available. Please refresh the menu and try again.';
+      } else if (hasQuantityIssues) {
+        validationMessage =
+          'One or more item quantities are invalid. Please update your basket and try again.';
+      } else if (hasTotalMismatch) {
+        validationMessage =
+          'Your basket total changed. Please review your basket and try again.';
+      }
       console.error('POST /api/orders validation failed.', {
         timestamp: attemptTimestamp,
         invalidProductIds: validation.invalidProductIds,
         quantityErrors: validation.quantityErrors,
         mismatchedTotals: validation.totalMismatch,
       });
-      return NextResponse.json({ error: 'Order validation failed.' }, { status: 400 });
+      return NextResponse.json({ error: validationMessage }, { status: 400 });
     }
+
+    const normalizedNotes = body.notes?.trim() ?? '';
+    const discountNote = body.discount
+      ? `Discount applied: ${body.discount.code} (${body.discount.discountType} ${body.discount.discountValue}) amount ${body.discount.discountAmount.toFixed(2)}`
+      : '';
+    const combinedNotes = [normalizedNotes, discountNote].filter(Boolean).join('\n');
+    const emailPayload = {
+      orderNumber: body.orderNumber,
+      customerName: body.customerName,
+      email: body.email,
+      orderType: body.orderType,
+      tableNumber: body.tableNumber ?? null,
+      collectionTime: body.collectionTime ?? null,
+      items: validation.normalizedItems,
+      total: validation.calculatedTotal,
+    };
 
     // Supabase insert flow verified in development; keep SQLite fallback during transition.
     if (isSupabaseConfigured()) {
@@ -382,7 +447,9 @@ export async function POST(request: Request) {
         total: validation.calculatedTotal,
         status: 'new' as const,
         payment_status: 'pending' as const,
-        notes: body.notes ?? null,
+        notes: combinedNotes || null,
+        privacy_accepted: true,
+        marketing_opt_in: Boolean(body.marketingOptIn),
       };
       let { data: insertedOrder, error: orderInsertError } = await supabaseServer
         .from('orders')
@@ -425,6 +492,11 @@ export async function POST(request: Request) {
         }
 
         console.log(`POST /api/orders inserted order ${body.orderNumber} in Supabase.`);
+        try {
+          await sendOrderConfirmationEmail(emailPayload);
+        } catch (emailError) {
+          console.error('Order confirmation email preview failed.', emailError);
+        }
         return NextResponse.json({ id: insertedOrder.id, orderNumber: body.orderNumber }, { status: 201 });
       }
     }
@@ -434,8 +506,15 @@ export async function POST(request: Request) {
       ...body,
       items: validation.normalizedItems,
       total: validation.calculatedTotal,
+      privacyAccepted: true,
+      marketingOptIn: Boolean(body.marketingOptIn),
     });
     console.log(`POST /api/orders inserted order ${body.orderNumber} in SQLite fallback.`);
+    try {
+      await sendOrderConfirmationEmail(emailPayload);
+    } catch (emailError) {
+      console.error('Order confirmation email preview failed.', emailError);
+    }
     return NextResponse.json({ id: fallbackId, orderNumber: body.orderNumber }, { status: 201 });
   } catch {
     console.error('POST /api/orders failed unexpectedly.');

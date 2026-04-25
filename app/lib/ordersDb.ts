@@ -19,6 +19,8 @@ type OrderRow = {
   total: number;
   status: StaffOrderStatus;
   paymentStatus: PaymentStatus;
+  privacyAccepted: number;
+  marketingOptIn: number;
   createdAt: string;
 };
 
@@ -46,9 +48,28 @@ const getDatabase = () => {
       total REAL NOT NULL,
       status TEXT NOT NULL,
       paymentStatus TEXT NOT NULL,
+      privacyAccepted INTEGER NOT NULL DEFAULT 0,
+      marketingOptIn INTEGER NOT NULL DEFAULT 0,
       createdAt TEXT NOT NULL
     );
   `);
+  const columns = database
+    .prepare("PRAGMA table_info('orders')")
+    .all() as Array<{ name: string }>;
+  const hasPrivacyAcceptedColumn = columns.some((column) => column.name === 'privacyAccepted');
+  if (!hasPrivacyAcceptedColumn) {
+    database.exec(`
+      ALTER TABLE orders
+      ADD COLUMN privacyAccepted INTEGER NOT NULL DEFAULT 0;
+    `);
+  }
+  const hasMarketingOptInColumn = columns.some((column) => column.name === 'marketingOptIn');
+  if (!hasMarketingOptInColumn) {
+    database.exec(`
+      ALTER TABLE orders
+      ADD COLUMN marketingOptIn INTEGER NOT NULL DEFAULT 0;
+    `);
+  }
 
   return database;
 };
@@ -56,6 +77,8 @@ const getDatabase = () => {
 const mapOrderRow = (row: OrderRow): PersistedOrder => ({
   ...row,
   items: JSON.parse(row.items) as BasketItem[],
+  privacyAccepted: Boolean(row.privacyAccepted),
+  marketingOptIn: Boolean(row.marketingOptIn),
 });
 
 export const createOrder = (payload: {
@@ -68,6 +91,8 @@ export const createOrder = (payload: {
   collectionTime?: string;
   items: BasketItem[];
   total: number;
+  privacyAccepted?: boolean;
+  marketingOptIn?: boolean;
 }) => {
   const db = getDatabase();
   const now = new Date().toISOString();
@@ -78,10 +103,10 @@ export const createOrder = (payload: {
     .prepare(
       `INSERT INTO orders (
         orderNumber, customerName, email, phone, orderType, tableNumber, collectionTime,
-        items, total, status, paymentStatus, createdAt
+        items, total, status, paymentStatus, privacyAccepted, marketingOptIn, createdAt
       ) VALUES (
         @orderNumber, @customerName, @email, @phone, @orderType, @tableNumber, @collectionTime,
-        @items, @total, @status, @paymentStatus, @createdAt
+        @items, @total, @status, @paymentStatus, @privacyAccepted, @marketingOptIn, @createdAt
       )`
     )
     .run({
@@ -96,6 +121,8 @@ export const createOrder = (payload: {
       total: payload.total,
       status,
       paymentStatus,
+      privacyAccepted: payload.privacyAccepted ? 1 : 0,
+      marketingOptIn: payload.marketingOptIn ? 1 : 0,
       createdAt: now,
     });
 

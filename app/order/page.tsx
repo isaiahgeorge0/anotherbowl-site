@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import { ORDER_MENU_BY_CATEGORY } from '@/data/orderMenu';
@@ -130,6 +131,7 @@ const availabilityBadge = (available: boolean) => (
 );
 
 export default function OrderPage() {
+  const router = useRouter();
   const [setupParams, setSetupParams] = useState<{
     type: string;
     collectionTime: string;
@@ -147,6 +149,7 @@ export default function OrderPage() {
   const [basketDrawerOpen, setBasketDrawerOpen] = useState(false);
   const [basketSheetEntered, setBasketSheetEntered] = useState(false);
   const [orderingPaused, setOrderingPaused] = useState(false);
+  const [orderingPauseLoaded, setOrderingPauseLoaded] = useState(false);
   /** Visual feedback only: brief pulse on mobile bar after an add (does not delay add). */
   const [basketBarPulse, setBasketBarPulse] = useState(false);
   /** Line item id whose quantity was just changed — micro-scale on the number (±). */
@@ -181,12 +184,19 @@ export default function OrderPage() {
         if (!cancelled) setOrderingPaused(Boolean(j.paused));
       } catch {
         if (!cancelled) setOrderingPaused(false);
+      } finally {
+        if (!cancelled) setOrderingPauseLoaded(true);
       }
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!orderingPauseLoaded || !orderingPaused) return;
+    router.replace('/order-paused');
+  }, [orderingPauseLoaded, orderingPaused, router]);
 
   useEffect(() => {
     saveBasket(basket);

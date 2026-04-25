@@ -37,6 +37,12 @@ const staffActions = [
     cta: 'Open Menu',
   },
   {
+    title: 'Content',
+    description: 'Edit homepage, run club, and blog text updates from one place.',
+    href: '/staff/content',
+    cta: 'Open Content',
+  },
+  {
     title: 'Discounts',
     description: 'Create and manage discount codes for checkout promotions.',
     href: '/staff/discounts',

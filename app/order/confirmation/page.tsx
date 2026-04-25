@@ -8,9 +8,9 @@ import { getLastOrder } from '@/lib/orderStorage';
 import type { StoredOrder } from '@/types/order';
 
 const primaryButtonClass =
-  'inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-3 font-bold text-white shadow-md transition-all duration-200 hover:bg-primary/90 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 focus:ring-offset-light active:scale-[0.98]';
+  'button-order inline-flex min-h-[46px] items-center justify-center rounded-xl px-6 py-3 font-bold text-white shadow-md transition-all duration-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-white/40 focus:ring-offset-2 focus:ring-offset-light active:scale-[0.98]';
 const secondaryButtonClass =
-  'inline-flex items-center justify-center rounded-xl border border-stone-200/90 bg-light/90 px-5 py-3 text-stone-800 shadow-sm transition-all duration-200 hover:border-stone-300/80 hover:bg-light focus:outline-none focus:ring-2 focus:ring-stone-400/40 focus:ring-offset-2';
+  'button-primary inline-flex min-h-[46px] items-center justify-center rounded-xl px-6 py-3 font-semibold text-stone-900 shadow-sm transition-all duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/25 focus:ring-offset-2';
 const noticeBoxClass = 'rounded-xl border border-amber-200/80 bg-amber-50/90 p-4 text-amber-900/90';
 
 export default function OrderConfirmationPage() {
