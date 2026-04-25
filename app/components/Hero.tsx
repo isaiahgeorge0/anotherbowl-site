@@ -50,7 +50,7 @@ export default function Hero() {
           </p>
           <div className="mt-6">
             <Link
-              href="/order"
+              href="/order/start"
               className="button-primary inline-flex min-h-[48px] items-center justify-center rounded-xl px-6 py-3 text-base shadow-md"
             >
               Order Now
@@ -117,7 +117,7 @@ export default function Hero() {
             className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6"
           >
             {[
-              { href: '/order', label: 'Order Now', icon: '🛍️' },
+              { href: '/order/start', label: 'Order Now', icon: '🛍️' },
               { href: '/about', label: 'About Us', icon: '👥' },
               { href: '/blog', label: 'Blog', icon: '📝' },
               { href: '/run-club', label: 'Run Club', icon: '🏃‍♀️' }

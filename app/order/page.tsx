@@ -770,11 +770,11 @@ export default function OrderPage() {
               : 'translate-y-full opacity-0 pointer-events-none'
           }`}
         >
-          <div className="pointer-events-auto px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-0 sm:px-4">
+          <div className="pointer-events-auto px-0 pb-0 pt-0">
             <button
               type="button"
               onClick={() => setBasketDrawerOpen(true)}
-              className={`button-order group flex min-h-[52px] w-full items-center justify-between gap-3 rounded-t-2xl border border-transparent px-4 py-3.5 text-left shadow-[0_-8px_32px_rgba(28,26,24,0.18)] transition-[transform,box-shadow,ring-width] duration-200 ease-out will-change-transform active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-900 ${
+              className={`button-order group flex min-h-[52px] w-full items-center justify-between gap-3 rounded-none border border-transparent px-4 pb-[calc(0.875rem+env(safe-area-inset-bottom))] pt-3.5 text-left shadow-[0_-8px_32px_rgba(28,26,24,0.18)] transition-[transform,box-shadow,ring-width] duration-200 ease-out will-change-transform active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-900 sm:rounded-t-2xl sm:px-5 ${
                 basketBarPulse ? 'scale-[1.02] ring-2 ring-inset ring-white/25' : 'scale-100'
               }`}
               aria-label={`View basket: ${basketItemCount} ${basketItemCount === 1 ? 'item' : 'items'}, £${subtotal.toFixed(2)} total`}
