@@ -825,7 +825,7 @@ export default function OrderPage() {
       {basket.length > 0 && basketDrawerOpen && (
         <div className="fixed inset-0 z-[100] lg:hidden" role="presentation">
           <div
-            className={`absolute inset-0 cursor-default bg-stone-900/35 transition-opacity duration-300 ease-out ${
+            className={`absolute inset-0 cursor-default bg-black/40 backdrop-blur-sm transition-opacity duration-300 ease-out ${
               basketSheetEntered ? 'opacity-100' : 'opacity-0'
             }`}
             aria-hidden
@@ -835,7 +835,7 @@ export default function OrderPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="basket-drawer-title"
-            className={`absolute bottom-0 left-0 right-0 z-10 max-h-[min(88dvh,640px)] overflow-y-auto rounded-t-2xl border-t border-stone-200/80 bg-light/98 px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-12px_40px_rgba(28,26,24,0.12)] transition-transform duration-300 ease-out ${
+            className={`absolute bottom-0 left-0 right-0 z-10 max-h-[min(88dvh,640px)] overflow-y-auto rounded-t-2xl border-t border-stone-200/80 bg-white px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-12px_40px_rgba(28,26,24,0.12)] transition-transform duration-300 ease-out ${
               basketSheetEntered ? 'translate-y-0' : 'translate-y-full'
             }`}
           >
