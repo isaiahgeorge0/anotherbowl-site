@@ -48,6 +48,14 @@ export default function Hero() {
           <p className="text-lg sm:text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed font-semibold drop-shadow-md">
             Weekly run club. Made in Ipswich.
           </p>
+          <div className="mt-6">
+            <Link
+              href="/order"
+              className="button-primary inline-flex min-h-[48px] items-center justify-center rounded-xl px-6 py-3 text-base shadow-md"
+            >
+              Order Now
+            </Link>
+          </div>
         </motion.div>
 
         {/* Hero Images Grid */}
@@ -96,11 +104,9 @@ export default function Hero() {
             className="text-center mb-8"
           >
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2">
-              Explore Our World
+              Explore Another Bowl
             </h2>
-            <p className="text-lg text-white/80">
-              Discover what makes Another Bowl special
-            </p>
+            <p className="text-lg text-white/80">Discover our story, updates, and community.</p>
           </motion.div>
 
           {/* Explore Cards Grid */}
@@ -111,8 +117,8 @@ export default function Hero() {
             className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6"
           >
             {[
+              { href: '/order', label: 'Order Now', icon: '🛍️' },
               { href: '/about', label: 'About Us', icon: '👥' },
-              { href: '/menu', label: 'Our Menu', icon: '🥗' },
               { href: '/blog', label: 'Blog', icon: '📝' },
               { href: '/run-club', label: 'Run Club', icon: '🏃‍♀️' }
             ].map((item, index) => (

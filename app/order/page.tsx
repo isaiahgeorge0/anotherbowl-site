@@ -8,11 +8,99 @@ import { ORDER_MENU_BY_CATEGORY } from '@/data/orderMenu';
 import { getBasket, saveBasket } from '@/lib/orderStorage';
 import type { BasketItem, OrderMenuItem } from '@/types/order';
 
+type MenuApiCategory = {
+  id: string;
+  name: string;
+  display_order: number | null;
+};
+
+type MenuApiProduct = {
+  id: string;
+  name: string;
+  price: number;
+  description: string | null;
+  category_id: string;
+  display_order: number | null;
+  is_active: boolean;
+};
+
 const slugifyCategory = (value: string) =>
   value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+
+const getDesktopCategorySectionId = (category: string) => `order-category-${slugifyCategory(category)}`;
+const getMobileCategorySectionId = (category: string) =>
+  `order-category-mobile-${slugifyCategory(category)}`;
+
+const FALLBACK_MENU_BY_CATEGORY = ORDER_MENU_BY_CATEGORY;
+
+type BuiltMenuResult = {
+  menuByCategory: Record<string, OrderMenuItem[]>;
+  activeProductCount: number;
+  groupedProductCount: number;
+};
+
+const buildMenuByCategoryFromApi = (
+  categories: MenuApiCategory[],
+  products: MenuApiProduct[]
+): BuiltMenuResult => {
+  const activeProducts = products.filter((product) => product.is_active);
+  if (!activeProducts.length) {
+    return { menuByCategory: {}, activeProductCount: 0, groupedProductCount: 0 };
+  }
+
+  const categoryOrder = new Map<string, number>();
+  const categoryNameById = new Map<string, string>();
+  categories.forEach((category, index) => {
+    categoryNameById.set(category.id, category.name);
+    categoryOrder.set(category.id, category.display_order ?? index);
+  });
+
+  const groupedByCategoryId = new Map<string, Array<{ item: OrderMenuItem; displayOrder: number }>>();
+  activeProducts.forEach((product) => {
+    const categoryName = categoryNameById.get(product.category_id);
+    if (!categoryName) return;
+    const entry: OrderMenuItem = {
+      id: product.id,
+      name: product.name,
+      description: product.description ?? '',
+      price: Number(product.price),
+      category: categoryName,
+      available: true,
+      modifiers: [],
+      allergens: [],
+      dietaryTags: [],
+    };
+    const current = groupedByCategoryId.get(product.category_id) ?? [];
+    current.push({ item: entry, displayOrder: product.display_order ?? Number.MAX_SAFE_INTEGER });
+    groupedByCategoryId.set(product.category_id, current);
+  });
+
+  const sortedCategoryIds = [...groupedByCategoryId.keys()].sort(
+    (a, b) => (categoryOrder.get(a) ?? Number.MAX_SAFE_INTEGER) - (categoryOrder.get(b) ?? Number.MAX_SAFE_INTEGER)
+  );
+
+  const byCategory: Record<string, OrderMenuItem[]> = {};
+  let groupedProductCount = 0;
+  sortedCategoryIds.forEach((categoryId) => {
+    const categoryName = categoryNameById.get(categoryId);
+    const items = groupedByCategoryId.get(categoryId);
+    if (!categoryName || !items?.length) return;
+    const sortedItems = [...items]
+      .sort((a, b) => a.displayOrder - b.displayOrder || a.item.name.localeCompare(b.item.name))
+      .map(({ item }) => item);
+    byCategory[categoryName] = sortedItems;
+    groupedProductCount += sortedItems.length;
+  });
+
+  return {
+    menuByCategory: byCategory,
+    activeProductCount: activeProducts.length,
+    groupedProductCount,
+  };
+};
 
 /* Shared layout: ring+offset reserved on add buttons so "Added" state does not change dimensions */
 const addToBasketButtonBaseClass =
@@ -42,17 +130,17 @@ const availabilityBadge = (available: boolean) => (
 );
 
 export default function OrderPage() {
+  const [menuByCategory, setMenuByCategory] = useState<Record<string, OrderMenuItem[]>>({});
+  const [menuLoading, setMenuLoading] = useState(true);
   const [basket, setBasket] = useState<BasketItem[]>([]);
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>(
-    () => Object.keys(ORDER_MENU_BY_CATEGORY)[0] ?? ''
+    () => Object.keys(FALLBACK_MENU_BY_CATEGORY)[0] ?? ''
   );
   const [mobileSummaryBarMounted, setMobileSummaryBarMounted] = useState(false);
   const [mobileSummaryBarEntered, setMobileSummaryBarEntered] = useState(false);
   const [basketDrawerOpen, setBasketDrawerOpen] = useState(false);
   const [basketSheetEntered, setBasketSheetEntered] = useState(false);
-  const [categoryDrawerOpen, setCategoryDrawerOpen] = useState(false);
-  const [categoryDrawerEntered, setCategoryDrawerEntered] = useState(false);
   const [orderingPaused, setOrderingPaused] = useState(false);
   /** Visual feedback only: brief pulse on mobile bar after an add (does not delay add). */
   const [basketBarPulse, setBasketBarPulse] = useState(false);
@@ -73,11 +161,6 @@ export default function OrderPage() {
       setBasketDrawerOpen(false);
       closeDrawerTimeoutRef.current = null;
     }, 300);
-  }, []);
-
-  const closeCategoryDrawer = useCallback(() => {
-    setCategoryDrawerEntered(false);
-    setCategoryDrawerOpen(false);
   }, []);
 
   useEffect(() => {
@@ -157,7 +240,85 @@ export default function OrderPage() {
     [basket]
   );
 
-  const categories = useMemo(() => Object.keys(ORDER_MENU_BY_CATEGORY), []);
+  const categories = useMemo(() => Object.keys(menuByCategory), [menuByCategory]);
+
+  const getCategorySectionElement = useCallback(
+    (category: string, preferredView: 'desktop' | 'mobile' | 'any' = 'any') => {
+      const desktop = document.getElementById(getDesktopCategorySectionId(category)) as HTMLElement | null;
+      const mobile = document.getElementById(getMobileCategorySectionId(category)) as HTMLElement | null;
+
+      if (preferredView === 'desktop') return desktop;
+      if (preferredView === 'mobile') return mobile;
+
+      const visible = [desktop, mobile].find(
+        (element): element is HTMLElement => element !== null && element.getClientRects().length > 0
+      );
+      return visible ?? desktop ?? mobile;
+    },
+    []
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch('/api/menu', { cache: 'no-store' });
+        if (!response.ok) {
+          if (!cancelled) setMenuByCategory(FALLBACK_MENU_BY_CATEGORY);
+          return;
+        }
+        const payload = (await response.json()) as {
+          categories?: MenuApiCategory[];
+          products?: MenuApiProduct[];
+        };
+        const categoriesData = payload.categories ?? [];
+        const productsData = payload.products ?? [];
+        const built = buildMenuByCategoryFromApi(categoriesData, productsData);
+        const activeCategoryCount = Object.keys(built.menuByCategory).length;
+        const hasMoreThanOneActiveCategory = activeCategoryCount > 1;
+        const hasActiveProducts = built.activeProductCount > 0;
+        const allProductsGroupedToValidCategories =
+          built.groupedProductCount === built.activeProductCount && built.groupedProductCount > 0;
+        const isCompleteSupabaseMenu =
+          hasMoreThanOneActiveCategory && hasActiveProducts && allProductsGroupedToValidCategories;
+
+        if (cancelled) return;
+
+        if (isCompleteSupabaseMenu) {
+          setMenuByCategory(built.menuByCategory);
+        } else {
+          setMenuByCategory(FALLBACK_MENU_BY_CATEGORY);
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn(
+              'Using static fallback menu: Supabase menu is partial/incomplete.',
+              {
+                activeCategoryCount,
+                activeProductCount: built.activeProductCount,
+                groupedProductCount: built.groupedProductCount,
+              }
+            );
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          // Keep static fallback menu if Supabase menu fetch fails.
+          setMenuByCategory(FALLBACK_MENU_BY_CATEGORY);
+        }
+      } finally {
+        if (!cancelled) setMenuLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!categories.length) return;
+    if (!selectedCategory || !categories.includes(selectedCategory)) {
+      setSelectedCategory(categories[0]);
+    }
+  }, [categories, selectedCategory]);
 
   useEffect(() => {
     const el = mobileCategoryTabRefs.current[selectedCategory];
@@ -167,7 +328,7 @@ export default function OrderPage() {
 
   useEffect(() => {
     const sections = categories
-      .map((category) => document.getElementById(`order-category-${slugifyCategory(category)}`))
+      .map((category) => getCategorySectionElement(category))
       .filter(Boolean) as HTMLElement[];
     if (!sections.length) return;
 
@@ -177,9 +338,11 @@ export default function OrderPage() {
           .filter((entry) => entry.isIntersecting)
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
         if (!visible?.target?.id) return;
-        const matched = categories.find(
-          (category) => `order-category-${slugifyCategory(category)}` === visible.target.id
-        );
+        const matched = categories.find((category) => {
+          const desktopId = getDesktopCategorySectionId(category);
+          const mobileId = getMobileCategorySectionId(category);
+          return visible.target.id === desktopId || visible.target.id === mobileId;
+        });
         if (matched) setSelectedCategory(matched);
       },
       { rootMargin: '-30% 0px -60% 0px', threshold: [0.2, 0.4, 0.65] }
@@ -187,15 +350,7 @@ export default function OrderPage() {
 
     sections.forEach((section) => observer.observe(section));
     return () => observer.disconnect();
-  }, [categories]);
-
-  const itemsForSelectedMobileCategory = useMemo(
-    () =>
-      selectedCategory && ORDER_MENU_BY_CATEGORY[selectedCategory]
-        ? ORDER_MENU_BY_CATEGORY[selectedCategory]
-        : null,
-    [selectedCategory]
-  );
+  }, [categories, getCategorySectionElement]);
 
   useEffect(() => {
     const n = basket.length;
@@ -251,35 +406,21 @@ export default function OrderPage() {
   }, [basketDrawerOpen]);
 
   useEffect(() => {
-    if (!categoryDrawerOpen) {
-      setCategoryDrawerEntered(false);
-      return;
-    }
-    setCategoryDrawerEntered(false);
-    const id = requestAnimationFrame(() => {
-      requestAnimationFrame(() => setCategoryDrawerEntered(true));
-    });
-    return () => cancelAnimationFrame(id);
-  }, [categoryDrawerOpen]);
-
-  useEffect(() => {
-    if (!basketDrawerOpen && !categoryDrawerOpen) return;
+    if (!basketDrawerOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       if (basketDrawerOpen) {
         closeBasketDrawer();
-        return;
       }
-      if (categoryDrawerOpen) closeCategoryDrawer();
     };
     document.addEventListener('keydown', onKey);
     return () => {
       document.body.style.overflow = prev;
       document.removeEventListener('keydown', onKey);
     };
-  }, [basketDrawerOpen, categoryDrawerOpen, closeBasketDrawer, closeCategoryDrawer]);
+  }, [basketDrawerOpen, closeBasketDrawer]);
 
   useEffect(() => {
     if (basket.length === 0) {
@@ -324,11 +465,13 @@ export default function OrderPage() {
     const isAdded = justAddedId === item.id;
     return (
       <article key={item.id} className={menuItemCardClass}>
-        <div className="flex min-w-0 items-start justify-between gap-3">
-          <h3 className="min-w-0 flex-1 pr-1 text-base font-semibold leading-snug text-stone-900">
+        <div className="min-w-0">
+          <h3 className="break-words text-base font-semibold leading-tight text-stone-900">
             {item.name}
           </h3>
-          <p className="shrink-0 text-right text-base font-bold tabular-nums text-stone-900">GBP {item.price.toFixed(2)}</p>
+          <p className="mt-1 text-sm font-semibold tabular-nums text-stone-700">
+            GBP {item.price.toFixed(2)}
+          </p>
         </div>
         <div className="mt-2.5 flex-1">
           {availabilityBadge(item.available)}
@@ -434,25 +577,40 @@ export default function OrderPage() {
                 aria-label="Desktop menu categories"
               >
                 <p className="px-3 pb-2 text-xs uppercase tracking-wide text-stone-500">Categories</p>
-                <div className="flex flex-col gap-1.5">
-                  {categories.map((category) => {
-                    const isActive = selectedCategory === category;
-                    return (
-                      <a
-                        key={`desktop-category-${category}`}
-                        href={`#order-category-${slugifyCategory(category)}`}
-                        onClick={() => setSelectedCategory(category)}
-                        className={`rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
-                          isActive
-                            ? 'bg-stone-900 text-white shadow-sm'
-                            : 'border border-stone-300 bg-white text-stone-800 hover:-translate-y-[1px] hover:border-stone-500 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40'
-                        }`}
-                      >
-                        {category}
-                      </a>
-                    );
-                  })}
-                </div>
+                {menuLoading ? (
+                  <div className="space-y-2 px-1 py-1" aria-live="polite">
+                    <p className="px-2 text-xs text-stone-500">Loading menu...</p>
+                    <div className="h-8 animate-pulse rounded-lg bg-stone-100" />
+                    <div className="h-8 animate-pulse rounded-lg bg-stone-100" />
+                    <div className="h-8 animate-pulse rounded-lg bg-stone-100" />
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {categories.map((category) => {
+                      const isActive = selectedCategory === category;
+                      return (
+                        <button
+                          key={`desktop-category-${category}`}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCategory(category);
+                            const section = getCategorySectionElement(category, 'desktop');
+                            if (section) {
+                              section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                          }}
+                          className={`rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                            isActive
+                              ? 'bg-stone-900 text-white shadow-sm'
+                              : 'border border-stone-300 bg-white text-stone-800 hover:-translate-y-[1px] hover:border-stone-500 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40'
+                          }`}
+                        >
+                          {category}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </nav>
             </aside>
 
@@ -463,52 +621,104 @@ export default function OrderPage() {
                 </div>
               )}
 
-              <div className="lg:hidden">
-                <button
-                  type="button"
-                  onClick={() => setCategoryDrawerOpen(true)}
-                  className="button-primary inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 py-2 shadow-sm"
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-                    <path d="M3 5.75A.75.75 0 013.75 5h12.5a.75.75 0 010 1.5H3.75A.75.75 0 013 5.75zm0 4.25a.75.75 0 01.75-.75h8.5a.75.75 0 010 1.5h-8.5A.75.75 0 013 10zm0 4.25a.75.75 0 01.75-.75h12.5a.75.75 0 010 1.5H3.75a.75.75 0 01-.75-.75z" />
-                  </svg>
-                  Categories
-                </button>
-              </div>
+              <nav
+                className="sticky top-16 z-20 -mx-6 mb-4 border-b border-stone-300/80 bg-white/95 shadow-[0_2px_8px_rgba(28,26,24,0.06)] backdrop-blur-sm sm:top-20 sm:-mx-8 lg:hidden"
+                aria-label="Mobile category navigation"
+              >
+                <div className="flex items-center gap-2 px-4 py-2.5 sm:px-6">
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-stone-300 bg-white text-stone-700">
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                      <path d="M3 5.75A.75.75 0 013.75 5h12.5a.75.75 0 010 1.5H3.75A.75.75 0 013 5.75zm0 4.25a.75.75 0 01.75-.75h8.5a.75.75 0 010 1.5h-8.5A.75.75 0 013 10zm0 4.25a.75.75 0 01.75-.75h12.5a.75.75 0 010 1.5H3.75a.75.75 0 01-.75-.75z" />
+                    </svg>
+                  </span>
+                  {menuLoading ? (
+                    <p className="text-sm font-medium text-stone-600" aria-live="polite">
+                      Loading menu...
+                    </p>
+                  ) : (
+                    <div
+                      className="flex min-w-0 flex-1 gap-4 overflow-x-auto overscroll-x-contain whitespace-nowrap [scrollbar-width:none]"
+                      role="tablist"
+                      aria-label="Menu categories"
+                    >
+                      {categories.map((category) => {
+                        const isActive = selectedCategory === category;
+                        return (
+                          <button
+                            key={`mobile-tab-${category}`}
+                            type="button"
+                            role="tab"
+                            id={`order-category-tab-${slugifyCategory(category)}`}
+                            aria-selected={isActive}
+                            ref={(el) => {
+                              mobileCategoryTabRefs.current[category] = el;
+                            }}
+                            onClick={() => {
+                              setSelectedCategory(category);
+                              const section = getCategorySectionElement(category, 'mobile');
+                              if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }}
+                            className={`relative shrink-0 pb-1.5 text-sm font-medium transition-colors duration-200 ${
+                              isActive
+                                ? 'text-stone-900 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:rounded-full after:bg-stone-900'
+                                : 'text-stone-600 hover:text-stone-800'
+                            }`}
+                          >
+                            {category}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </nav>
 
               <div className="space-y-6 lg:hidden">
-                {itemsForSelectedMobileCategory && selectedCategory && (
-                  <div
-                    id="order-category-panel"
-                    role="tabpanel"
-                    aria-labelledby={`order-category-tab-${slugifyCategory(selectedCategory)}`}
-                    className="rounded-2xl border border-stone-200/90 bg-white p-4 shadow-[0_6px_18px_rgba(28,26,24,0.08)] sm:p-5"
-                  >
-                    <h2 className="mb-4 border-b border-stone-200/80 pb-2 text-xl font-black text-stone-900">
-                      {selectedCategory}
-                    </h2>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
-                      {itemsForSelectedMobileCategory.map((item) => renderMenuItemCard(item))}
-                    </div>
+                {menuLoading ? (
+                  <div className="rounded-2xl border border-stone-200/90 bg-white p-4 shadow-[0_6px_18px_rgba(28,26,24,0.08)] sm:p-5">
+                    <p className="text-sm font-medium text-stone-600">Loading menu items...</p>
                   </div>
+                ) : (
+                  Object.entries(menuByCategory).map(([category, items]) => (
+                    <div
+                      key={`mobile-${category}`}
+                      id={getMobileCategorySectionId(category)}
+                      className="scroll-mt-20 rounded-2xl border border-stone-200/90 bg-white p-4 shadow-[0_6px_18px_rgba(28,26,24,0.08)] sm:p-5"
+                    >
+                      <h2 className="mb-4 border-b border-stone-200/80 pb-2 text-xl font-black text-stone-900">
+                        {category}
+                      </h2>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+                        {items.map((item) => renderMenuItemCard(item))}
+                      </div>
+                    </div>
+                  ))
                 )}
               </div>
 
               <div className="hidden lg:contents">
-                {Object.entries(ORDER_MENU_BY_CATEGORY).map(([category, items]) => (
+                {menuLoading ? (
                   <div
-                    key={category}
-                    id={`order-category-${slugifyCategory(category)}`}
-                    className="scroll-mt-20 sm:scroll-mt-24 rounded-2xl border border-stone-200/90 bg-white p-5 shadow-[0_6px_18px_rgba(28,26,24,0.08)] sm:p-6"
+                    className="rounded-2xl border border-stone-200/90 bg-white p-5 shadow-[0_6px_18px_rgba(28,26,24,0.08)] sm:p-6"
                   >
-                    <h2 className="mb-4 border-b border-stone-200/80 pb-3 text-2xl font-black text-stone-900">
-                      {category}
-                    </h2>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
-                      {items.map((item) => renderMenuItemCard(item))}
-                    </div>
+                    <p className="text-sm font-medium text-stone-600">Loading menu items...</p>
                   </div>
-                ))}
+                ) : (
+                  Object.entries(menuByCategory).map(([category, items]) => (
+                    <div
+                      key={category}
+                      id={getDesktopCategorySectionId(category)}
+                      className="scroll-mt-20 sm:scroll-mt-24 rounded-2xl border border-stone-200/90 bg-white p-5 shadow-[0_6px_18px_rgba(28,26,24,0.08)] sm:p-6"
+                    >
+                      <h2 className="mb-4 border-b border-stone-200/80 pb-3 text-2xl font-black text-stone-900">
+                        {category}
+                      </h2>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+                        {items.map((item) => renderMenuItemCard(item))}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </section>
 
@@ -676,66 +886,6 @@ export default function OrderPage() {
               )}
             </div>
           </div>
-        </div>
-      )}
-
-      {categoryDrawerOpen && (
-        <div className="fixed inset-0 z-[90] lg:hidden" role="presentation">
-          <div
-            className={`absolute inset-0 bg-stone-900/35 transition-opacity duration-300 ease-out ${
-              categoryDrawerEntered ? 'opacity-100' : 'opacity-0'
-            }`}
-            onClick={closeCategoryDrawer}
-            aria-hidden
-          />
-          <aside
-            role="dialog"
-            aria-modal="true"
-            aria-label="Category navigation"
-            className={`absolute inset-y-0 left-0 w-[86vw] max-w-xs border-r border-stone-300/80 bg-white p-4 shadow-[8px_0_24px_rgba(28,26,24,0.12)] transition-transform duration-300 ease-out ${
-              categoryDrawerEntered ? 'translate-x-0' : '-translate-x-full'
-            }`}
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base font-bold text-stone-900">Categories</h2>
-              <button
-                type="button"
-                onClick={closeCategoryDrawer}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-stone-600 hover:bg-stone-100"
-                aria-label="Close category menu"
-              >
-                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-                  <path
-                    fillRule="evenodd"
-                    d="M4.22 4.22a.75.75 0 011.06 0L10 8.94l4.72-4.72a.75.75 0 111.06 1.06L11.06 10l4.72 4.72a.75.75 0 11-1.06 1.06L10 11.06l-4.72 4.72a.75.75 0 11-1.06-1.06L8.94 10 4.22 5.28a.75.75 0 010-1.06z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </button>
-            </div>
-            <div className="space-y-2">
-              {categories.map((category) => {
-                const isActive = selectedCategory === category;
-                return (
-                  <button
-                    key={`mobile-drawer-${category}`}
-                    type="button"
-                    onClick={() => {
-                      setSelectedCategory(category);
-                      closeCategoryDrawer();
-                    }}
-                    className={`w-full rounded-lg border px-3 py-2 text-left text-sm font-medium transition-all duration-200 ${
-                      isActive
-                        ? 'border-stone-900 bg-stone-900 text-white'
-                        : 'border-stone-300 bg-white text-stone-800 hover:border-stone-500 hover:bg-stone-100'
-                    }`}
-                  >
-                    {category}
-                  </button>
-                );
-              })}
-            </div>
-          </aside>
         </div>
       )}
 

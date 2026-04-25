@@ -41,6 +41,7 @@ const defaultDraft: ProductDraft = {
 
 type CategoryEditDraft = { name: string; display_order: string };
 const defaultCategoryDraft: CategoryEditDraft = { name: '', display_order: '0' };
+const normalizedCategoryKey = (name: string) => name.trim().toLowerCase();
 
 export default function StaffMenuPage() {
   const router = useRouter();
@@ -60,6 +61,7 @@ export default function StaffMenuPage() {
   const [editDraft, setEditDraft] = useState<ProductDraft>(defaultDraft);
   const [editingCategory, setEditingCategory] = useState<StaffCategory | null>(null);
   const [categoryEditDraft, setCategoryEditDraft] = useState<CategoryEditDraft>(defaultCategoryDraft);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
 
   // Supabase auth gate replaces temporary route protection for operational security.
   // x-staff-key remains temporarily in API requests until backend auth migration is complete.
@@ -138,22 +140,61 @@ export default function StaffMenuPage() {
     fetchMenu();
   }, [fetchMenu, isAuthenticated]);
 
-  const productsByCategory = useMemo(() => {
-    return categories
-      .slice()
-      .sort((a, b) => a.display_order - b.display_order)
-      .map((category) => ({
-        category,
-        products: products
-          .filter((product) => product.category === category.id)
-          .sort(
-            (a, b) =>
-              (a.display_order ?? Number.MAX_SAFE_INTEGER) -
-                (b.display_order ?? Number.MAX_SAFE_INTEGER) ||
-              a.name.localeCompare(b.name)
-          ),
-      }));
+  const displayGroups = useMemo(() => {
+    const sorted = categories.slice().sort((a, b) => a.display_order - b.display_order);
+    const grouped = new Map<
+      string,
+      {
+        category: StaffCategory;
+        categoryIds: string[];
+        duplicateCount: number;
+        products: StaffProduct[];
+      }
+    >();
+
+    for (const category of sorted) {
+      const key = normalizedCategoryKey(category.name);
+      const existing = grouped.get(key);
+      const categoryProducts = products.filter((product) => product.category === category.id);
+      if (!existing) {
+        grouped.set(key, {
+          category,
+          categoryIds: [category.id],
+          duplicateCount: 1,
+          products: categoryProducts,
+        });
+        continue;
+      }
+      existing.categoryIds.push(category.id);
+      existing.duplicateCount += 1;
+      existing.products.push(...categoryProducts);
+    }
+
+    return Array.from(grouped.entries())
+      .map(([key, value]) => ({
+        key,
+        category: value.category,
+        categoryIds: value.categoryIds,
+        duplicateCount: value.duplicateCount,
+        products: value.products.sort(
+          (a, b) =>
+            (a.display_order ?? Number.MAX_SAFE_INTEGER) -
+              (b.display_order ?? Number.MAX_SAFE_INTEGER) || a.name.localeCompare(b.name)
+        ),
+      }))
+      .sort((a, b) => a.category.display_order - b.category.display_order);
   }, [categories, products]);
+
+  const visibleGroups = useMemo(
+    () =>
+      selectedCategoryId === 'all'
+        ? displayGroups
+        : displayGroups.filter((group) => group.key === selectedCategoryId),
+    [displayGroups, selectedCategoryId]
+  );
+
+  const totalProductCount = products.length;
+  const activeProductCount = products.filter((product) => product.is_active).length;
 
   const openEditModal = (product: StaffProduct) => {
     setEditingProduct(product);
@@ -340,6 +381,24 @@ export default function StaffMenuPage() {
 
           <StaffNav />
 
+          <section className="mb-6 rounded-xl border border-stone-200/80 bg-white/85 p-4 sm:p-5">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-500">Menu control hub</h2>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border border-stone-200/90 bg-light/70 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Categories</p>
+                <p className="mt-1 text-2xl font-black text-stone-900">{categories.length}</p>
+              </div>
+              <div className="rounded-lg border border-stone-200/90 bg-light/70 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Products</p>
+                <p className="mt-1 text-2xl font-black text-stone-900">{totalProductCount}</p>
+              </div>
+              <div className="rounded-lg border border-stone-200/90 bg-light/70 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Available now</p>
+                <p className="mt-1 text-2xl font-black text-stone-900">{activeProductCount}</p>
+              </div>
+            </div>
+          </section>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
             <form onSubmit={submitNewCategory} className="space-y-3 rounded-xl border border-stone-200/80 p-4">
               <h2 className="text-lg font-bold text-stone-900">Add category</h2>
@@ -465,10 +524,44 @@ export default function StaffMenuPage() {
             </p>
           )}
 
+          <nav
+            className="mb-6 rounded-xl border border-stone-200/80 bg-white p-3"
+            aria-label="Filter categories"
+          >
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedCategoryId('all')}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
+                  selectedCategoryId === 'all'
+                    ? 'bg-stone-900 text-white'
+                    : 'button-primary'
+                }`}
+              >
+                All categories
+              </button>
+              {displayGroups.map((group) => {
+                const isActive = selectedCategoryId === group.key;
+                return (
+                  <button
+                    key={`filter-${group.key}`}
+                    type="button"
+                    onClick={() => setSelectedCategoryId(group.key)}
+                    className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
+                      isActive ? 'bg-stone-900 text-white' : 'button-primary'
+                    }`}
+                  >
+                    {group.category.name}
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+
           <div className="space-y-6">
-            {productsByCategory.map(({ category, products: categoryProducts }) => (
+            {visibleGroups.map(({ key, category, products: categoryProducts, duplicateCount }) => (
               <section
-                key={category.id}
+                key={key}
                 className="rounded-xl border border-stone-200/75 bg-mint/20 p-4 sm:p-5"
               >
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -479,6 +572,12 @@ export default function StaffMenuPage() {
                       {categoryProducts.length === 1 ? '' : 's'}
                     </p>
                     <p className="text-xs text-stone-500 break-all">id: {category.id}</p>
+                    {duplicateCount > 1 && (
+                      <p className="mt-1 text-xs text-amber-800/90">
+                        Showing {duplicateCount} categories with the same name together. Clean up duplicate rows in
+                        Supabase later if needed.
+                      </p>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -492,11 +591,11 @@ export default function StaffMenuPage() {
                 {categoryProducts.length === 0 ? (
                   <p className="text-sm text-stone-600">No products in this category yet.</p>
                 ) : (
-                  <ul className="list-none space-y-3 p-0">
+                  <ul className="grid list-none grid-cols-1 gap-3 p-0 lg:grid-cols-2">
                     {categoryProducts.map((product) => (
                       <li key={product.id}>
                         <article
-                          className={`rounded-xl border bg-light/90 p-4 ${
+                          className={`h-full rounded-xl border bg-light/90 p-4 ${
                             product.is_active
                               ? 'border-emerald-200'
                               : 'border-stone-300 opacity-80'
@@ -528,7 +627,7 @@ export default function StaffMenuPage() {
                               </label>
                               <button
                                 type="button"
-                                className={secondaryButtonClass}
+                                className={`${secondaryButtonClass} w-full sm:w-auto`}
                                 onClick={() => openEditModal(product)}
                               >
                                 Edit details
@@ -542,6 +641,11 @@ export default function StaffMenuPage() {
                 )}
               </section>
             ))}
+            {!loading && visibleGroups.length === 0 && (
+              <p className="rounded-xl border border-dashed border-stone-300/90 bg-white p-4 text-sm text-stone-600">
+                No category matches that filter.
+              </p>
+            )}
           </div>
         </div>
       </main>
