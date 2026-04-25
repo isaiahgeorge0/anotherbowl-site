@@ -81,7 +81,7 @@ export default function RunClubSection() {
 
           {/* CTA Button */}
           <motion.button
-            className="bg-gradient-to-r from-brandPink to-brandGreen text-white px-8 py-4 rounded-xl font-bold hover:from-brandPink/90 hover:to-brandGreen/90 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brandPink/50"
+            className="button-primary rounded-xl px-8 py-4 shadow-md hover:shadow-lg focus:outline-none focus:ring-offset-2"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             initial={{ opacity: 0, y: 20 }}

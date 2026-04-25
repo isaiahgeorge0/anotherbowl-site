@@ -168,7 +168,7 @@ export default function DesktopMenuDropdown() {
             transition={{ duration: 0.2, ease: 'easeOut' }}
             onMouseEnter={handleDropdownMouseEnter}
             onMouseLeave={handleDropdownMouseLeave}
-            className="absolute left-0 top-full z-50 mt-2 w-96 overflow-hidden rounded-xl border border-stone-200/80 bg-light/95 shadow-lg"
+            className="absolute left-0 top-full z-[60] mt-2 w-96 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-[0_10px_25px_rgba(0,0,0,0.08)]"
           >
             <div className="p-4">
               {groupedCategories.map((group, groupIndex) => (
@@ -176,7 +176,7 @@ export default function DesktopMenuDropdown() {
                   key={groupIndex}
                   className={groupIndex > 0 ? 'mt-4 border-t border-stone-200/60 pt-4' : ''}
                 >
-                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-stone-500">
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-600">
                     {group.title}
                   </h3>
                   <div className="grid grid-cols-2 gap-2">
@@ -185,7 +185,7 @@ export default function DesktopMenuDropdown() {
                         key={category.id}
                         href={getCategoryHash(category.id)}
                         onClick={() => setIsOpen(false)}
-                        className="group/item flex items-center gap-2 rounded-lg p-2 text-left text-sm text-stone-700 transition-colors duration-200 hover:bg-mint/30 hover:text-stone-900"
+                        className="group/item flex items-center gap-2 rounded-lg p-2 text-left text-sm text-gray-800 transition-colors duration-200 hover:bg-[#F6D5DF] hover:text-gray-900"
                         role="menuitem"
                       >
                         <div

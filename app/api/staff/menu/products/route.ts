@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
-import { authorizeStaffMenuRequest, getStaffMenuSupabase } from '../_lib';
+import {
+  authorizeStaffMenuRequest,
+  getStaffMenuSupabase,
+  isMissingColumnError,
+  logStaffMenuApiError,
+} from '../_lib';
 
 type CreateProductBody = {
   name?: string;
   price?: number;
   category?: string;
   is_active?: boolean;
+  description?: string;
 };
 
 const slugify = (value: string) =>
@@ -24,6 +30,8 @@ export async function POST(request: Request) {
     const price = body.price;
     const category = body.category?.trim();
     const isActive = body.is_active ?? true;
+    const description =
+      typeof body.description === 'string' ? body.description.trim() : '';
 
     if (!name || typeof price !== 'number' || Number.isNaN(price) || price < 0 || !category) {
       return NextResponse.json({ error: 'Invalid product payload.' }, { status: 400 });
@@ -44,24 +52,43 @@ export async function POST(request: Request) {
     const suffix = Date.now().toString(36);
     const productId = `${baseId}-${suffix}`;
 
-    const { data, error } = await supabase
+    let createResult = await supabase
       .from('products')
       .insert({
         id: productId,
         name,
         price: Math.round(price * 100) / 100,
-        category,
+        category_id: category,
         is_active: isActive,
+        description,
+        display_order: 0,
       })
-      .select('id,name,price,category,is_active,created_at')
+      .select('id,name,price,category:category_id,is_active,description,display_order,created_at')
       .single();
 
-    if (error || !data) {
+    if (createResult.error && isMissingColumnError(createResult.error, 'category_id')) {
+      createResult = await supabase
+        .from('products')
+        .insert({
+          id: productId,
+          name,
+          price: Math.round(price * 100) / 100,
+          category,
+          is_active: isActive,
+          description,
+        })
+        .select('id,name,price,category,is_active,description,created_at')
+        .single();
+    }
+
+    if (createResult.error || !createResult.data) {
+      logStaffMenuApiError('create-product', createResult.error);
       return NextResponse.json({ error: 'Could not create product.' }, { status: 500 });
     }
 
-    return NextResponse.json({ product: data }, { status: 201 });
-  } catch {
+    return NextResponse.json({ product: createResult.data }, { status: 201 });
+  } catch (error) {
+    logStaffMenuApiError('create-product-unhandled', error);
     return NextResponse.json({ error: 'Could not create product.' }, { status: 500 });
   }
 }

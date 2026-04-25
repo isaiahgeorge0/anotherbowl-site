@@ -18,10 +18,20 @@ create table if not exists public.products (
   id text primary key,
   name text not null,
   price numeric not null check (price >= 0),
-  category text not null references public.categories(id),
+  category_id text not null references public.categories(id),
   is_active boolean not null default true,
+  display_order integer not null default 0,
+  description text not null default '',
   created_at timestamptz not null default now()
 );
+
+-- Backfill: existing projects created before these columns were added
+alter table public.products
+add column if not exists description text not null default '';
+alter table public.products
+add column if not exists category_id text references public.categories(id);
+alter table public.products
+add column if not exists display_order integer not null default 0;
 
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
@@ -60,7 +70,7 @@ create index if not exists idx_orders_status on public.orders(status);
 create index if not exists idx_orders_order_number on public.orders(order_number);
 create index if not exists idx_order_items_order_id on public.order_items(order_id);
 create index if not exists idx_products_active on public.products(is_active);
-create index if not exists idx_products_category on public.products(category);
+create index if not exists idx_products_category_id on public.products(category_id);
 
 -- Key/value settings (e.g. `online_ordering_paused`). Read/write from API with service role.
 create table if not exists public.app_settings (

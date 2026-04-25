@@ -6,15 +6,16 @@ import { createClient, type RealtimeChannel } from '@supabase/supabase-js';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import StaffLogoutButton from '@/components/StaffLogoutButton';
+import StaffNav from '@/components/StaffNav';
 import { supabaseServer } from '@/lib/supabaseServer';
 import type { PersistedOrder, StaffOrderStatus } from '@/types/order';
 import type { PrintableDocumentType } from '@/types/printing';
 
 const allStatuses: StaffOrderStatus[] = ['new', 'preparing', 'ready', 'completed', 'cancelled'];
 const primaryButtonClass =
-  'rounded-xl bg-primary px-4 py-2 font-semibold text-white shadow-md transition-all duration-200 hover:bg-primary/90 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 focus:ring-offset-light active:scale-[0.98]';
+  'button-staff rounded-xl px-4 py-2 shadow-sm active:scale-[0.98]';
 const secondaryButtonClass =
-  'rounded-xl border border-stone-200/90 bg-light/90 px-4 py-2 text-stone-800 shadow-sm transition-all duration-200 hover:border-stone-300/80 hover:bg-light focus:outline-none focus:ring-2 focus:ring-stone-400/40 focus:ring-offset-2';
+  'button-staff rounded-xl px-4 py-2 shadow-sm';
 const selectClass =
   'rounded-lg border border-stone-200/90 bg-light/90 px-3 py-2 font-medium text-stone-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25';
 const noticeBoxClass = 'rounded-xl border border-amber-200/80 bg-amber-50/90 p-4 text-amber-900/90';
@@ -573,6 +574,8 @@ export default function StaffOrdersPage() {
             </div>
           </div>
 
+          <StaffNav />
+
           <div className="mb-6 rounded-xl border border-stone-200/80 bg-mint/25 p-4 sm:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -598,7 +601,7 @@ export default function StaffOrdersPage() {
                     type="button"
                     onClick={() => setOnlineOrderingPause(true)}
                     disabled={orderingPauseLoading}
-                    className="rounded-xl bg-amber-600/95 px-4 py-2 font-semibold text-white shadow-sm transition-all duration-200 hover:bg-amber-500/95 focus:outline-none focus:ring-2 focus:ring-amber-400/50 focus:ring-offset-2 active:scale-[0.98]"
+                    className={primaryButtonClass}
                   >
                     Pause online ordering
                   </button>

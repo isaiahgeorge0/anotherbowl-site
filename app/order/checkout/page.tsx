@@ -18,9 +18,9 @@ type CollectionAvailability = {
 
 type FormErrors = Partial<Record<keyof CheckoutDetails, string>>;
 const primaryButtonClass =
-  'inline-flex items-center justify-center px-6 py-4 rounded-2xl font-bold text-white bg-primary shadow-md transition-all duration-200 hover:bg-primary/90 hover:shadow-lg active:scale-[0.98] active:bg-primary/95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-light';
+  'button-order inline-flex items-center justify-center rounded-2xl px-6 py-4 font-bold shadow-md transition-all duration-200 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-light';
 const secondaryButtonClass =
-  'px-4 py-2 rounded-xl border border-stone-200/90 text-stone-800 bg-light/90 shadow-sm transition-all duration-200 hover:border-stone-300/80 hover:bg-light active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-400/40 focus-visible:ring-offset-2';
+  'button-primary rounded-xl px-4 py-2 shadow-sm transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-400/40 focus-visible:ring-offset-2';
 const inputClass =
   'w-full min-w-0 max-w-full box-border rounded-xl border border-stone-200/80 bg-light/60 px-4 py-3 text-stone-900 shadow-sm transition-[border-color,box-shadow] duration-200 placeholder:text-stone-400 hover:border-stone-300/90 focus:border-primary/45 focus:outline-none focus:ring-2 focus:ring-brandGreen/20 focus:ring-offset-0';
 const noticeBoxClass =
@@ -474,8 +474,8 @@ export default function CheckoutPage() {
                     onClick={() => handleOrderTypeChange('collection')}
                     className={`min-h-[44px] min-w-[44px] rounded-xl border px-5 font-semibold shadow-sm transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-light active:scale-[0.98] ${
                       details.orderType === 'collection'
-                        ? 'border-primary bg-primary text-white shadow-md ring-1 ring-primary/25'
-                        : 'border-stone-200/90 bg-light/80 text-stone-700 hover:border-stone-300/90 hover:bg-light hover:shadow-sm'
+                        ? 'button-order border-transparent shadow-md ring-1 ring-stone-700/30'
+                        : 'button-primary border-2 shadow-sm'
                     }`}
                   >
                     Collection
@@ -485,8 +485,8 @@ export default function CheckoutPage() {
                     onClick={() => handleOrderTypeChange('table')}
                     className={`min-h-[44px] min-w-[44px] rounded-xl border px-5 font-semibold shadow-sm transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-light active:scale-[0.98] ${
                       details.orderType === 'table'
-                        ? 'border-primary bg-primary text-white shadow-md ring-1 ring-primary/25'
-                        : 'border-stone-200/90 bg-light/80 text-stone-700 hover:border-stone-300/90 hover:bg-light hover:shadow-sm'
+                        ? 'button-order border-transparent shadow-md ring-1 ring-stone-700/30'
+                        : 'button-primary border-2 shadow-sm'
                     }`}
                   >
                     Table

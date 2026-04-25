@@ -16,18 +16,18 @@ const slugifyCategory = (value: string) =>
 
 /* Shared layout: ring+offset reserved on add buttons so "Added" state does not change dimensions */
 const addToBasketButtonBaseClass =
-  'mt-4 flex min-h-[48px] w-full box-border items-center justify-center rounded-xl border-2 border-transparent px-4 py-3.5 text-center text-base font-bold text-white shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-200 focus:outline-none focus:ring-2 focus:ring-brandGreen/35 focus:ring-offset-2 focus:ring-offset-light';
+  'button-order mt-4 flex min-h-[48px] w-full box-border items-center justify-center rounded-xl border-2 border-transparent px-4 py-3.5 text-center text-base font-bold opacity-100 shadow-sm transition-[background-color,border-color,box-shadow,transform] duration-200 focus:outline-none focus:ring-2 focus:ring-brandGreen/35 focus:ring-offset-2 focus:ring-offset-light';
 
 const primaryButtonClass =
-  'inline-flex min-h-[44px] items-center justify-center rounded-2xl bg-primary px-4 py-3.5 font-bold text-white shadow-md transition-all duration-200 hover:bg-primary/90 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 focus:ring-offset-light active:scale-[0.98]';
+  'button-order inline-flex min-h-[44px] items-center justify-center rounded-2xl px-4 py-3.5 font-bold shadow-md transition-all duration-200 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 focus:ring-offset-light';
 const secondaryButtonClass =
-  'inline-flex items-center justify-center rounded-xl border border-stone-200/90 bg-light/90 px-4 py-2 text-stone-800 shadow-sm transition-all duration-200 hover:border-stone-300/80 hover:bg-light hover:shadow-md active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-400/50 focus-visible:ring-offset-2';
+  'button-primary inline-flex items-center justify-center rounded-xl px-4 py-2 shadow-sm transition-all duration-200 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-400/50 focus-visible:ring-offset-2';
 const qtyButtonClass =
   'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-stone-200/90 bg-light/90 text-lg font-semibold leading-none text-stone-800 shadow-sm transition-all duration-200 hover:border-stone-300/80 hover:bg-light hover:shadow-md active:scale-[0.92] active:bg-mint/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-400/50 focus-visible:ring-offset-2';
 const noticeBoxClass = 'rounded-xl border border-amber-200/80 bg-amber-50/90 p-4 text-amber-900/90';
 
 const menuItemCardClass =
-  'group relative flex flex-col rounded-2xl border border-stone-200/80 bg-light/90 p-5 shadow-[0_2px_18px_rgba(28,26,24,0.05)] transition-all duration-200 hover:border-stone-300/80 hover:shadow-md active:scale-[0.99] active:shadow-sm';
+  'group relative flex h-full min-h-[18.5rem] flex-col rounded-2xl border border-stone-200/90 bg-white p-5 shadow-[0_6px_18px_rgba(28,26,24,0.08)] transition-all duration-200 hover:border-stone-300/90 hover:shadow-md active:scale-[0.99] active:shadow-sm';
 
 const availabilityBadge = (available: boolean) => (
   <span
@@ -51,6 +51,8 @@ export default function OrderPage() {
   const [mobileSummaryBarEntered, setMobileSummaryBarEntered] = useState(false);
   const [basketDrawerOpen, setBasketDrawerOpen] = useState(false);
   const [basketSheetEntered, setBasketSheetEntered] = useState(false);
+  const [categoryDrawerOpen, setCategoryDrawerOpen] = useState(false);
+  const [categoryDrawerEntered, setCategoryDrawerEntered] = useState(false);
   const [orderingPaused, setOrderingPaused] = useState(false);
   /** Visual feedback only: brief pulse on mobile bar after an add (does not delay add). */
   const [basketBarPulse, setBasketBarPulse] = useState(false);
@@ -71,6 +73,11 @@ export default function OrderPage() {
       setBasketDrawerOpen(false);
       closeDrawerTimeoutRef.current = null;
     }, 300);
+  }, []);
+
+  const closeCategoryDrawer = useCallback(() => {
+    setCategoryDrawerEntered(false);
+    setCategoryDrawerOpen(false);
   }, []);
 
   useEffect(() => {
@@ -158,6 +165,30 @@ export default function OrderPage() {
     el.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
   }, [selectedCategory]);
 
+  useEffect(() => {
+    const sections = categories
+      .map((category) => document.getElementById(`order-category-${slugifyCategory(category)}`))
+      .filter(Boolean) as HTMLElement[];
+    if (!sections.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (!visible?.target?.id) return;
+        const matched = categories.find(
+          (category) => `order-category-${slugifyCategory(category)}` === visible.target.id
+        );
+        if (matched) setSelectedCategory(matched);
+      },
+      { rootMargin: '-30% 0px -60% 0px', threshold: [0.2, 0.4, 0.65] }
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, [categories]);
+
   const itemsForSelectedMobileCategory = useMemo(
     () =>
       selectedCategory && ORDER_MENU_BY_CATEGORY[selectedCategory]
@@ -220,19 +251,35 @@ export default function OrderPage() {
   }, [basketDrawerOpen]);
 
   useEffect(() => {
-    if (!basketDrawerOpen) return;
+    if (!categoryDrawerOpen) {
+      setCategoryDrawerEntered(false);
+      return;
+    }
+    setCategoryDrawerEntered(false);
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => setCategoryDrawerEntered(true));
+    });
+    return () => cancelAnimationFrame(id);
+  }, [categoryDrawerOpen]);
+
+  useEffect(() => {
+    if (!basketDrawerOpen && !categoryDrawerOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
-      if (basketDrawerOpen) closeBasketDrawer();
+      if (basketDrawerOpen) {
+        closeBasketDrawer();
+        return;
+      }
+      if (categoryDrawerOpen) closeCategoryDrawer();
     };
     document.addEventListener('keydown', onKey);
     return () => {
       document.body.style.overflow = prev;
       document.removeEventListener('keydown', onKey);
     };
-  }, [basketDrawerOpen, closeBasketDrawer]);
+  }, [basketDrawerOpen, categoryDrawerOpen, closeBasketDrawer, closeCategoryDrawer]);
 
   useEffect(() => {
     if (basket.length === 0) {
@@ -250,7 +297,7 @@ export default function OrderPage() {
   const addButtonStateClass = (isAdded: boolean) =>
     isAdded
       ? 'border-emerald-500/40 bg-emerald-800/90 hover:border-emerald-400/50 hover:bg-emerald-800'
-      : 'bg-primary hover:border-primary/30 hover:bg-primary/90 active:scale-[0.98] active:bg-primary/95 active:shadow-inner';
+      : 'border-transparent bg-[#1c1a18] opacity-100 hover:bg-[#2a2521] active:bg-[#241f1b] active:shadow-inner';
 
   const addButtonContent = (item: OrderMenuItem) =>
     justAddedId === item.id ? (
@@ -277,21 +324,23 @@ export default function OrderPage() {
     const isAdded = justAddedId === item.id;
     return (
       <article key={item.id} className={menuItemCardClass}>
-        <div className="flex min-w-0 items-baseline justify-between gap-3">
+        <div className="flex min-w-0 items-start justify-between gap-3">
           <h3 className="min-w-0 flex-1 pr-1 text-base font-semibold leading-snug text-stone-900">
             {item.name}
           </h3>
           <p className="shrink-0 text-right text-base font-bold tabular-nums text-stone-900">GBP {item.price.toFixed(2)}</p>
         </div>
-        <div className="mt-2.5">{availabilityBadge(item.available)}</div>
-        {item.description && (
-          <p className="mt-3 text-sm leading-relaxed text-stone-600">{item.description}</p>
-        )}
+        <div className="mt-2.5 flex-1">
+          {availabilityBadge(item.available)}
+          {item.description && (
+            <p className="mt-3 text-sm leading-relaxed text-stone-600">{item.description}</p>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => handleAddToBasket(item)}
           disabled={!item.available || orderingPaused}
-          className={`${addToBasketButtonBaseClass} disabled:pointer-events-none disabled:opacity-50 ${addButtonStateClass(isAdded)}`}
+          className={`${addToBasketButtonBaseClass} mt-auto disabled:pointer-events-none disabled:opacity-70 ${addButtonStateClass(isAdded)}`}
         >
           {addButtonContent(item)}
         </button>
@@ -378,51 +427,54 @@ export default function OrderPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6">
-            <section className="order-2 space-y-6 lg:order-1">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[180px_minmax(0,1fr)_320px]">
+            <aside className="order-1 hidden lg:block">
+              <nav
+                className="sticky top-28 max-h-[calc(100vh-140px)] overflow-y-auto rounded-xl border border-stone-300/80 bg-white p-2 shadow-[0_4px_14px_rgba(28,26,24,0.08)]"
+                aria-label="Desktop menu categories"
+              >
+                <p className="px-3 pb-2 text-xs uppercase tracking-wide text-stone-500">Categories</p>
+                <div className="flex flex-col gap-1.5">
+                  {categories.map((category) => {
+                    const isActive = selectedCategory === category;
+                    return (
+                      <a
+                        key={`desktop-category-${category}`}
+                        href={`#order-category-${slugifyCategory(category)}`}
+                        onClick={() => setSelectedCategory(category)}
+                        className={`rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                          isActive
+                            ? 'bg-stone-900 text-white shadow-sm'
+                            : 'border border-stone-300 bg-white text-stone-800 hover:-translate-y-[1px] hover:border-stone-500 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40'
+                        }`}
+                      >
+                        {category}
+                      </a>
+                    );
+                  })}
+                </div>
+              </nav>
+            </aside>
+
+            <section className="order-2 space-y-8">
               {basket.length === 0 && (
                 <div className="rounded-xl border border-dashed border-stone-200/80 bg-stone-50/40 p-4 sm:p-5 lg:hidden">
                   {emptyBasketContent}
                 </div>
               )}
-              <nav
-                className="sticky top-16 z-20 -mx-6 mb-3 min-h-[3.25rem] border-b border-stone-200/60 bg-light/95 shadow-[0_1px_0_rgba(28,26,24,0.04)] backdrop-blur-sm supports-[backdrop-filter]:bg-light/88 sm:top-20 sm:-mx-8 lg:hidden"
-                aria-label="Menu categories"
-              >
-                <p id="order-category-nav-label" className="sr-only">
-                  Select menu category
-                </p>
-                <div
-                  className="flex gap-1.5 overflow-x-auto overscroll-x-contain px-4 py-2.5 [scrollbar-width:thin] sm:px-6 [scrollbar-color:rgba(148,163,184,0.45)_transparent]"
-                  role="tablist"
-                  aria-labelledby="order-category-nav-label"
+
+              <div className="lg:hidden">
+                <button
+                  type="button"
+                  onClick={() => setCategoryDrawerOpen(true)}
+                  className="button-primary inline-flex min-h-[44px] items-center gap-2 rounded-xl px-4 py-2 shadow-sm"
                 >
-                  {categories.map((category) => {
-                    const isActive = selectedCategory === category;
-                    return (
-                      <button
-                        key={category}
-                        type="button"
-                        role="tab"
-                        id={`order-category-tab-${slugifyCategory(category)}`}
-                        aria-selected={isActive}
-                        ref={(el) => {
-                          mobileCategoryTabRefs.current[category] = el;
-                        }}
-                        aria-controls="order-category-panel"
-                        onClick={() => setSelectedCategory(category)}
-                        className={`shrink-0 select-none rounded-full border px-3.5 py-1.5 text-left text-sm font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 ${
-                          isActive
-                            ? 'border-primary/80 bg-primary text-white shadow-sm'
-                            : 'border-stone-200/90 bg-light/90 text-stone-700 shadow-sm hover:border-stone-300/80 hover:bg-light active:scale-[0.98]'
-                        }`}
-                      >
-                        {category}
-                      </button>
-                    );
-                  })}
-                </div>
-              </nav>
+                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                    <path d="M3 5.75A.75.75 0 013.75 5h12.5a.75.75 0 010 1.5H3.75A.75.75 0 013 5.75zm0 4.25a.75.75 0 01.75-.75h8.5a.75.75 0 010 1.5h-8.5A.75.75 0 013 10zm0 4.25a.75.75 0 01.75-.75h12.5a.75.75 0 010 1.5H3.75a.75.75 0 01-.75-.75z" />
+                  </svg>
+                  Categories
+                </button>
+              </div>
 
               <div className="space-y-6 lg:hidden">
                 {itemsForSelectedMobileCategory && selectedCategory && (
@@ -430,9 +482,11 @@ export default function OrderPage() {
                     id="order-category-panel"
                     role="tabpanel"
                     aria-labelledby={`order-category-tab-${slugifyCategory(selectedCategory)}`}
-                    className="rounded-xl border border-stone-200/75 bg-light/60 p-4 sm:p-5"
+                    className="rounded-2xl border border-stone-200/90 bg-white p-4 shadow-[0_6px_18px_rgba(28,26,24,0.08)] sm:p-5"
                   >
-                    <h2 className="mb-4 text-xl font-bold text-stone-900">{selectedCategory}</h2>
+                    <h2 className="mb-4 border-b border-stone-200/80 pb-2 text-xl font-black text-stone-900">
+                      {selectedCategory}
+                    </h2>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
                       {itemsForSelectedMobileCategory.map((item) => renderMenuItemCard(item))}
                     </div>
@@ -445,9 +499,11 @@ export default function OrderPage() {
                   <div
                     key={category}
                     id={`order-category-${slugifyCategory(category)}`}
-                    className="scroll-mt-28 sm:scroll-mt-32 rounded-xl border border-stone-200/75 bg-light/60 p-4 sm:p-5"
+                    className="scroll-mt-20 sm:scroll-mt-24 rounded-2xl border border-stone-200/90 bg-white p-5 shadow-[0_6px_18px_rgba(28,26,24,0.08)] sm:p-6"
                   >
-                    <h2 className="mb-4 text-xl font-bold text-stone-900">{category}</h2>
+                    <h2 className="mb-4 border-b border-stone-200/80 pb-3 text-2xl font-black text-stone-900">
+                      {category}
+                    </h2>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
                       {items.map((item) => renderMenuItemCard(item))}
                     </div>
@@ -458,7 +514,7 @@ export default function OrderPage() {
 
             <aside
               id="order-basket"
-              className="order-1 hidden min-h-0 max-h-[min(100vh-5.5rem,40rem)] flex-col rounded-2xl border-2 border-stone-200/80 bg-mint/25 p-5 shadow-[0_6px_24px_rgba(28,26,24,0.06)] sm:p-6 lg:order-2 lg:sticky lg:top-20 lg:flex lg:self-start"
+              className="order-3 hidden min-h-0 max-h-[min(100vh-5.5rem,40rem)] flex-col rounded-2xl border-2 border-stone-200/80 bg-mint/25 p-5 shadow-[0_6px_24px_rgba(28,26,24,0.06)] sm:p-6 lg:sticky lg:top-20 lg:flex lg:self-start"
             >
               <h2 className="shrink-0 text-xl font-bold text-stone-900">Basket</h2>
               {basket.length === 0 ? (
@@ -508,7 +564,7 @@ export default function OrderPage() {
             <button
               type="button"
               onClick={() => setBasketDrawerOpen(true)}
-              className={`group flex min-h-[52px] w-full items-center justify-between gap-3 rounded-t-2xl border border-primary/30 bg-primary px-4 py-3.5 text-left text-white shadow-[0_-8px_32px_rgba(28,26,24,0.18)] transition-[transform,box-shadow,ring-width] duration-200 ease-out will-change-transform active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-primary ${
+              className={`button-order group flex min-h-[52px] w-full items-center justify-between gap-3 rounded-t-2xl border border-transparent px-4 py-3.5 text-left shadow-[0_-8px_32px_rgba(28,26,24,0.18)] transition-[transform,box-shadow,ring-width] duration-200 ease-out will-change-transform active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-900 ${
                 basketBarPulse ? 'scale-[1.02] ring-2 ring-inset ring-white/25' : 'scale-100'
               }`}
               aria-label={`View basket: ${basketItemCount} ${basketItemCount === 1 ? 'item' : 'items'}, £${subtotal.toFixed(2)} total`}
@@ -620,6 +676,66 @@ export default function OrderPage() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {categoryDrawerOpen && (
+        <div className="fixed inset-0 z-[90] lg:hidden" role="presentation">
+          <div
+            className={`absolute inset-0 bg-stone-900/35 transition-opacity duration-300 ease-out ${
+              categoryDrawerEntered ? 'opacity-100' : 'opacity-0'
+            }`}
+            onClick={closeCategoryDrawer}
+            aria-hidden
+          />
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Category navigation"
+            className={`absolute inset-y-0 left-0 w-[86vw] max-w-xs border-r border-stone-300/80 bg-white p-4 shadow-[8px_0_24px_rgba(28,26,24,0.12)] transition-transform duration-300 ease-out ${
+              categoryDrawerEntered ? 'translate-x-0' : '-translate-x-full'
+            }`}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-base font-bold text-stone-900">Categories</h2>
+              <button
+                type="button"
+                onClick={closeCategoryDrawer}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-stone-600 hover:bg-stone-100"
+                aria-label="Close category menu"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                  <path
+                    fillRule="evenodd"
+                    d="M4.22 4.22a.75.75 0 011.06 0L10 8.94l4.72-4.72a.75.75 0 111.06 1.06L11.06 10l4.72 4.72a.75.75 0 11-1.06 1.06L10 11.06l-4.72 4.72a.75.75 0 11-1.06-1.06L8.94 10 4.22 5.28a.75.75 0 010-1.06z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="space-y-2">
+              {categories.map((category) => {
+                const isActive = selectedCategory === category;
+                return (
+                  <button
+                    key={`mobile-drawer-${category}`}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory(category);
+                      closeCategoryDrawer();
+                    }}
+                    className={`w-full rounded-lg border px-3 py-2 text-left text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'border-stone-900 bg-stone-900 text-white'
+                        : 'border-stone-300 bg-white text-stone-800 hover:border-stone-500 hover:bg-stone-100'
+                    }`}
+                  >
+                    {category}
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
         </div>
       )}
 

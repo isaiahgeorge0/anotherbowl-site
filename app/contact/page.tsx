@@ -227,7 +227,7 @@ export default function ContactPage() {
 
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center px-6 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-brandPink to-brandGreen hover:from-brandPink/90 hover:to-brandGreen/90 transition-all duration-300 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brandPink/50"
+                  className="button-primary inline-flex min-h-[44px] items-center justify-center rounded-xl px-6 py-3 shadow-md hover:shadow-lg focus:outline-none focus:ring-offset-2"
                 >
                   Send Message
                 </button>
@@ -241,7 +241,7 @@ export default function ContactPage() {
                   href="https://instagram.com/another.bowl"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 hover:border-primary/40 bg-white hover:bg-primary/5 transition-colors duration-200"
+                  className="button-primary inline-flex min-h-[44px] items-center gap-3 rounded-xl px-4 py-3 transition-colors duration-200"
                   aria-label="Visit our Instagram page"
                 >
                   <svg className="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -254,7 +254,7 @@ export default function ContactPage() {
                   href="https://facebook.com/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 hover:border-primary/40 bg-white hover:bg-primary/5 transition-colors duration-200"
+                  className="button-primary inline-flex min-h-[44px] items-center gap-3 rounded-xl px-4 py-3 transition-colors duration-200"
                   aria-label="Visit our Facebook page"
                 >
                   <svg className="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">

@@ -11,5 +11,7 @@ export type StaffProduct = {
   price: number;
   category: string;
   is_active: boolean;
+  description?: string;
+  display_order?: number | null;
   created_at?: string;
 };

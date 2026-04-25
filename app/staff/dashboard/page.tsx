@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
+import StaffNav from '@/components/StaffNav';
 import { supabaseServer } from '@/lib/supabaseServer';
 import type { PersistedOrder, StaffOrderStatus } from '@/types/order';
 
 const secondaryButtonClass =
-  'inline-flex min-h-[44px] items-center justify-center rounded-xl border border-stone-200/90 bg-light/90 px-4 py-2 text-sm font-semibold text-stone-800 shadow-sm transition-all duration-200 hover:border-stone-300/80 hover:bg-light focus:outline-none focus:ring-2 focus:ring-stone-400/40 focus:ring-offset-2';
+  'button-staff inline-flex min-h-[44px] items-center justify-center rounded-xl px-4 py-2 text-sm shadow-sm';
 
 const cardBase =
   'rounded-2xl border border-stone-200/70 bg-light/90 p-5 shadow-[0_4px_24px_rgba(28,26,24,0.05)] sm:p-6';
@@ -348,6 +349,8 @@ export default function StaffDashboardPage() {
             </button>
           </div>
         </div>
+
+        <StaffNav />
 
         {error && (
           <div className="mb-6 rounded-xl border border-rose-200/80 bg-rose-50/90 p-4 text-rose-900" role="alert">

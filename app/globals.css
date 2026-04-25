@@ -193,3 +193,88 @@ body {
 .scrollbar-gutter-stable {
   scrollbar-gutter: stable;
 }
+
+/* Staff-only action button style: matte pink, stronger contrast */
+.button-staff {
+  background: #ffffff;
+  border: 2px solid #d16a8c;
+  color: #b55274;
+  font-weight: 500;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.button-staff:hover {
+  background: #f6d5df;
+  border-color: #d16a8c;
+}
+
+.button-staff:focus-visible {
+  outline: 2px solid rgba(209, 106, 140, 0.35);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(209, 106, 140, 0.2);
+}
+
+.button-staff:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.button-staff-active {
+  background: #f6d5df;
+  border-color: #d16a8c;
+  color: #b55274;
+}
+
+/* Public primary action button */
+.button-primary {
+  background: #ffffff;
+  border: 2px solid #d16a8c;
+  color: #a84565;
+  font-weight: 500;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.button-primary:hover {
+  background: #f6d5df;
+  border-color: #d16a8c;
+}
+
+.button-primary:focus-visible {
+  outline: 2px solid rgba(209, 106, 140, 0.34);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(209, 106, 140, 0.18);
+}
+
+.button-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Transactional ordering CTA button */
+.button-order {
+  background: #1c1a18;
+  border: 2px solid transparent;
+  color: #ffffff;
+  font-weight: 600;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+}
+
+.button-order:hover {
+  background: #2a2521;
+}
+
+.button-order:active {
+  transform: scale(0.98);
+}
+
+.button-order:focus-visible {
+  outline: 2px solid rgba(163, 123, 98, 0.45);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(163, 123, 98, 0.22);
+}
+
+.button-order:disabled {
+  opacity: 0.6;
+  color: #f8f5f2;
+  cursor: not-allowed;
+}
