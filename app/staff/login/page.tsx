@@ -7,7 +7,7 @@ import Footer from '@/components/Footer';
 import { supabaseServer } from '@/lib/supabaseServer';
 
 const primaryButtonClass =
-  'rounded-2xl bg-primary px-4 py-2 font-semibold text-white shadow-md transition-all duration-200 hover:bg-primary/90 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:ring-offset-2 focus:ring-offset-light active:scale-[0.98] disabled:opacity-60';
+  'rounded-xl bg-black px-5 py-2 font-medium text-white shadow-sm transition-colors duration-200 hover:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-500/40 focus:ring-offset-2 focus:ring-offset-light active:scale-[0.98] disabled:opacity-60';
 const inputClass =
   'w-full rounded-xl border border-stone-200/90 bg-light/90 px-3 py-2 font-medium text-stone-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-brandGreen/30';
 

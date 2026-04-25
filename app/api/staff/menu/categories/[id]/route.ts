@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { authorizeStaffMenuRequest, getStaffMenuSupabase } from '../../_lib';
+import { getStaffMenuSupabase } from '../../_lib';
+import { requireOwnerRequest } from '@/lib/staffAuth';
 
 type UpdateCategoryBody = {
   name?: string;
@@ -10,8 +11,8 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const unauthorized = await authorizeStaffMenuRequest(request);
-  if (unauthorized) return unauthorized;
+  const ownerAuth = await requireOwnerRequest(request);
+  if (!ownerAuth.ok) return ownerAuth.response;
 
   try {
     const { id } = await context.params;

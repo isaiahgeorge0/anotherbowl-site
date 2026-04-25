@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import NavBar from '@/components/NavBar';
 import Footer from '@/components/Footer';
 import { clearBasket, getBasket } from '@/lib/orderStorage';
-import type { BasketItem, CheckoutDetails, CheckoutOrderType } from '@/types/order';
+import type { BasketItem, CheckoutDetails } from '@/types/order';
 
 type CollectionSlotRow = { time: string; current: number; max: number; available: boolean; full: boolean };
 type CollectionAvailability = {
@@ -14,6 +14,16 @@ type CollectionAvailability = {
   message: string | null;
   maxPerSlot: number;
   slots: CollectionSlotRow[];
+};
+
+type ValidatedDiscount = {
+  id: string;
+  code: string;
+  description: string;
+  discount_type: 'percent' | 'fixed';
+  discount_value: number;
+  discount_amount: number;
+  discounted_total: number;
 };
 
 type FormErrors = Partial<Record<keyof CheckoutDetails, string>>;
@@ -36,6 +46,11 @@ const FIELD_ID_ORDER: (keyof FormErrors)[] = [
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const [setupParams, setSetupParams] = useState<{
+    type: string;
+    collectionTime: string;
+    tableNumber: string;
+  }>({ type: '', collectionTime: '', tableNumber: '' });
   const [basket, setBasket] = useState<BasketItem[]>([]);
   const [details, setDetails] = useState<CheckoutDetails>({
     customerName: '',
@@ -56,6 +71,11 @@ export default function CheckoutPage() {
   const [orderSuccessPhase, setOrderSuccessPhase] = useState(false);
   const [orderSuccessRevealing, setOrderSuccessRevealing] = useState(false);
   const [validationFieldHighlight, setValidationFieldHighlight] = useState<string | null>(null);
+  const [discountCodeInput, setDiscountCodeInput] = useState('');
+  const [discountApplyLoading, setDiscountApplyLoading] = useState(false);
+  const [discountMessage, setDiscountMessage] = useState('');
+  const [discountMessageType, setDiscountMessageType] = useState<'success' | 'error' | null>(null);
+  const [appliedDiscount, setAppliedDiscount] = useState<ValidatedDiscount | null>(null);
   const placeOrderButtonRef = useRef<HTMLButtonElement>(null);
   const placeOrderIORef = useRef<IntersectionObserver | null>(null);
   const validationHighlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -66,6 +86,44 @@ export default function CheckoutPage() {
       (availability?.slots ?? []).filter((s) => s.available).map((s) => s.time),
     [availability]
   );
+  const setupType = setupParams.type;
+  const setupCollectionTime = setupParams.collectionTime.trim();
+  const setupTableNumber = setupParams.tableNumber.trim();
+  const hasValidSetup = useMemo(() => {
+    if (setupType === 'table') return Boolean(setupTableNumber);
+    if (setupType === 'collection') {
+      if (!setupCollectionTime) return false;
+      if (!availabilityLoaded) return true;
+      return availableCollectionTimes.includes(setupCollectionTime);
+    }
+    return false;
+  }, [
+    setupType,
+    setupTableNumber,
+    setupCollectionTime,
+    availabilityLoaded,
+    availableCollectionTimes,
+  ]);
+  const setupErrorMessage = useMemo(() => {
+    if (setupType === 'table' && !setupTableNumber) {
+      return 'Table setup is missing. Please restart your order setup.';
+    }
+    if (setupType === 'collection' && !setupCollectionTime) {
+      return 'Collection setup is missing. Please restart your order setup.';
+    }
+    if (
+      setupType === 'collection' &&
+      availabilityLoaded &&
+      setupCollectionTime &&
+      !availableCollectionTimes.includes(setupCollectionTime)
+    ) {
+      return 'Selected collection time is no longer available. Please restart order setup.';
+    }
+    if (setupType !== 'collection' && setupType !== 'table') {
+      return 'Order setup is missing. Please choose collection or table service first.';
+    }
+    return '';
+  }, [setupType, setupTableNumber, setupCollectionTime, availabilityLoaded, availableCollectionTimes]);
 
   useEffect(() => {
     setBasket(getBasket());
@@ -105,12 +163,23 @@ export default function CheckoutPage() {
   }, []);
 
   useEffect(() => {
-    if (details.orderType !== 'collection' || availableCollectionTimes.length === 0) return;
-    const t = details.collectionTime ?? '';
-    if (!t || !availableCollectionTimes.includes(t)) {
-      setDetails((p) => ({ ...p, collectionTime: availableCollectionTimes[0] ?? '' }));
-    }
-  }, [details.orderType, details.collectionTime, availableCollectionTimes]);
+    const current = new URLSearchParams(window.location.search);
+    setSetupParams({
+      type: current.get('type') ?? '',
+      collectionTime: current.get('collectionTime') ?? '',
+      tableNumber: current.get('tableNumber') ?? '',
+    });
+  }, []);
+
+  useEffect(() => {
+    if (setupType !== 'collection' && setupType !== 'table') return;
+    setDetails((prev) => ({
+      ...prev,
+      orderType: setupType,
+      collectionTime: setupType === 'collection' ? setupCollectionTime : '',
+      tableNumber: setupType === 'table' ? setupTableNumber : '',
+    }));
+  }, [setupType, setupCollectionTime, setupTableNumber]);
 
   useEffect(() => {
     if (basket.length === 0 || !orderingStatusLoaded) return;
@@ -150,10 +219,6 @@ export default function CheckoutPage() {
     if (!details.customerName.trim()) nextErrors.customerName = 'Name is required.';
     if (!details.email.trim()) nextErrors.email = 'Email is required.';
     if (!details.phone.trim()) nextErrors.phone = 'Phone is required.';
-
-    if (details.orderType === 'table' && !details.tableNumber?.trim()) {
-      nextErrors.tableNumber = 'Table number is required for table orders.';
-    }
     if (details.orderType === 'collection') {
       if (availableCollectionTimes.length === 0) {
         nextErrors.collectionTime =
@@ -209,15 +274,6 @@ export default function CheckoutPage() {
     });
   }, []);
 
-  const handleOrderTypeChange = (orderType: CheckoutOrderType) => {
-    setDetails((prev) => ({
-      ...prev,
-      orderType,
-      tableNumber: orderType === 'table' ? prev.tableNumber ?? '' : '',
-      collectionTime: orderType === 'collection' ? prev.collectionTime ?? '' : '',
-    }));
-  };
-
   useEffect(() => {
     if (!orderSuccessPhase) {
       setOrderSuccessRevealing(false);
@@ -242,6 +298,11 @@ export default function CheckoutPage() {
     if (submitting || orderSuccessPhase) return;
     if (basket.length === 0) return;
     if (!orderingStatusLoaded || !availabilityLoaded) return;
+    if (!hasValidSetup) {
+      setSubmitError(setupErrorMessage || 'Order setup is invalid. Please restart from order setup.');
+      return;
+    }
+    const lockedOrderType = setupType === 'table' ? 'table' : 'collection';
     if (orderingPaused) {
       setSubmitError('Online ordering is currently paused. Please try again later.');
       return;
@@ -269,9 +330,9 @@ export default function CheckoutPage() {
           customerName: details.customerName,
           email: details.email,
           phone: details.phone,
-          orderType: details.orderType,
-          tableNumber: details.orderType === 'table' ? details.tableNumber : undefined,
-          collectionTime: details.orderType === 'collection' ? details.collectionTime : undefined,
+          orderType: lockedOrderType,
+          tableNumber: lockedOrderType === 'table' ? setupTableNumber : undefined,
+          collectionTime: lockedOrderType === 'collection' ? details.collectionTime : undefined,
           items: basket,
           total: subtotal,
           notes: details.notes,
@@ -306,12 +367,13 @@ export default function CheckoutPage() {
   };
 
   const canCheckout =
+    hasValidSetup &&
     orderingStatusLoaded &&
     availabilityLoaded &&
     !orderingPaused &&
     (availability?.shopOpen ?? false);
   const collectionNoSlots: boolean = Boolean(
-    details.orderType === 'collection' &&
+    setupType === 'collection' &&
       (availableCollectionTimes.length === 0 || !availability?.shopOpen)
   );
   const canSubmitOrder = canCheckout && (details.orderType !== 'collection' || !collectionNoSlots);
@@ -320,7 +382,9 @@ export default function CheckoutPage() {
   );
 
   const feeAmount = 0;
+  const discountAmount = appliedDiscount?.discount_amount ?? 0;
   const grandTotal = subtotal + feeAmount;
+  const totalAfterDiscount = Math.max(0, grandTotal - discountAmount);
   const orderDisabled = submitting || orderSuccessPhase || !canSubmitOrder;
 
   const inputFor = (fieldId: string, hasError: boolean) =>
@@ -334,6 +398,51 @@ export default function CheckoutPage() {
     ]
       .filter(Boolean)
       .join(' ');
+
+  const applyDiscountCode = async () => {
+    if (discountApplyLoading) return;
+    const code = discountCodeInput.trim();
+    if (!code) {
+      setDiscountMessageType('error');
+      setDiscountMessage('Enter a discount code first.');
+      return;
+    }
+
+    setDiscountApplyLoading(true);
+    setDiscountMessage('');
+    setDiscountMessageType(null);
+
+    try {
+      const response = await fetch('/api/discounts/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, subtotal: grandTotal }),
+      });
+      const payload = (await response.json()) as {
+        error?: string;
+        valid?: boolean;
+        discount?: ValidatedDiscount;
+      };
+      if (!response.ok || !payload.valid || !payload.discount) {
+        setAppliedDiscount(null);
+        setDiscountMessageType('error');
+        setDiscountMessage(payload.error ?? 'Could not validate discount code.');
+        setDiscountApplyLoading(false);
+        return;
+      }
+
+      setAppliedDiscount(payload.discount);
+      setDiscountCodeInput(payload.discount.code);
+      setDiscountMessageType('success');
+      setDiscountMessage(`Code ${payload.discount.code} applied.`);
+      setDiscountApplyLoading(false);
+    } catch {
+      setAppliedDiscount(null);
+      setDiscountMessageType('error');
+      setDiscountMessage('Could not validate discount code.');
+      setDiscountApplyLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen scroll-smooth bg-gradient-to-br from-light via-white to-light">
@@ -466,88 +575,61 @@ export default function CheckoutPage() {
                 )}
               </div>
 
-              <div>
-                <p className="mb-2 text-sm font-semibold text-stone-900">Order type</p>
-                <div className="flex flex-wrap gap-3" role="group" aria-label="Order type">
-                  <button
-                    type="button"
-                    onClick={() => handleOrderTypeChange('collection')}
-                    className={`min-h-[44px] min-w-[44px] rounded-xl border px-5 font-semibold shadow-sm transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-light active:scale-[0.98] ${
-                      details.orderType === 'collection'
-                        ? 'button-order border-transparent shadow-md ring-1 ring-stone-700/30'
-                        : 'button-primary border-2 shadow-sm'
-                    }`}
+              {!hasValidSetup ? (
+                <div className="rounded-xl border border-amber-200/80 bg-amber-50/90 p-4 text-amber-900/95">
+                  <p className="text-sm font-semibold">Order setup required</p>
+                  <p className="mt-1 text-sm">
+                    {setupErrorMessage || 'Please restart your order setup before checkout.'}
+                  </p>
+                  <Link
+                    href="/order/start"
+                    className="mt-3 inline-flex min-h-[42px] items-center justify-center rounded-xl bg-stone-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-stone-800"
                   >
-                    Collection
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleOrderTypeChange('table')}
-                    className={`min-h-[44px] min-w-[44px] rounded-xl border px-5 font-semibold shadow-sm transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-light active:scale-[0.98] ${
-                      details.orderType === 'table'
-                        ? 'button-order border-transparent shadow-md ring-1 ring-stone-700/30'
-                        : 'button-primary border-2 shadow-sm'
-                    }`}
-                  >
-                    Table
-                  </button>
-                </div>
-              </div>
-
-              {details.orderType === 'table' ? (
-                <div className="min-w-0 max-w-full">
-                  <label htmlFor="tableNumber" className="mb-2 block text-sm font-semibold text-stone-900">
-                    Table number
-                  </label>
-                  <input
-                    id="tableNumber"
-                    name="tableNumber"
-                    value={details.tableNumber ?? ''}
-                    onChange={(e) => setDetails((prev) => ({ ...prev, tableNumber: e.target.value }))}
-                    onFocus={() => scrollFieldIntoViewOnFocus('tableNumber')}
-                    className={inputFor('tableNumber', Boolean(errors.tableNumber))}
-                    aria-invalid={Boolean(errors.tableNumber) || undefined}
-                    aria-describedby={errors.tableNumber ? 'tableNumber-error' : undefined}
-                  />
-                  {errors.tableNumber && (
-                    <p id="tableNumber-error" className="mt-1 text-sm text-rose-700/90" role="alert">
-                      {errors.tableNumber}
-                    </p>
-                  )}
+                    Restart order setup
+                  </Link>
                 </div>
               ) : (
-                <div className="min-w-0 w-full max-w-full">
-                    <label htmlFor="collectionTime" className="mb-2 block text-sm font-semibold text-stone-900">
-                    Collection time
-                  </label>
-                  <p className="mb-2 text-xs text-stone-500">
-                    Up to {availability?.maxPerSlot ?? 4} online orders per 15-minute slot. Full slots are not shown.
-                  </p>
-                  {availableCollectionTimes.length > 0 ? (
-                    <select
-                      id="collectionTime"
-                      name="collectionTime"
-                      value={details.collectionTime ?? availableCollectionTimes[0] ?? ''}
-                      onChange={(e) => setDetails((prev) => ({ ...prev, collectionTime: e.target.value }))}
-                      onFocus={() => scrollFieldIntoViewOnFocus('collectionTime')}
-                      className={inputFor('collectionTime', Boolean(errors.collectionTime))}
-                      aria-invalid={Boolean(errors.collectionTime) || undefined}
-                      aria-describedby={errors.collectionTime ? 'collectionTime-error' : undefined}
-                    >
-                      {availableCollectionTimes.map((time) => (
-                        <option key={time} value={time}>
-                          {time}
-                        </option>
-                      ))}
-                    </select>
+                <div className="rounded-xl border border-stone-200/80 bg-stone-50/70 p-4">
+                  <p className="text-sm font-semibold text-stone-900">Order setup</p>
+                  {setupType === 'collection' ? (
+                    <div className="mt-2 min-w-0 w-full max-w-full">
+                      <label htmlFor="collectionTime" className="mb-2 block text-sm font-semibold text-stone-900">
+                        Collection time
+                      </label>
+                      <p className="mb-2 text-xs text-stone-500">
+                        Up to {availability?.maxPerSlot ?? 4} online orders per 15-minute slot. Full slots are not shown.
+                      </p>
+                      {availableCollectionTimes.length > 0 ? (
+                        <select
+                          id="collectionTime"
+                          name="collectionTime"
+                          value={details.collectionTime ?? ''}
+                          onChange={(e) => setDetails((prev) => ({ ...prev, collectionTime: e.target.value }))}
+                          onFocus={() => scrollFieldIntoViewOnFocus('collectionTime')}
+                          className={inputFor('collectionTime', Boolean(errors.collectionTime))}
+                          aria-invalid={Boolean(errors.collectionTime) || undefined}
+                          aria-describedby={errors.collectionTime ? 'collectionTime-error' : undefined}
+                        >
+                          {availableCollectionTimes.map((time) => (
+                            <option key={time} value={time}>
+                              {time}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <p className="text-sm text-amber-800/95">
+                          {availability?.message?.trim() ?? 'All collection times are full or unavailable. Please try again later.'}
+                        </p>
+                      )}
+                      {errors.collectionTime && (
+                        <p id="collectionTime-error" className="mt-1 text-sm text-rose-700/90" role="alert">
+                          {errors.collectionTime}
+                        </p>
+                      )}
+                    </div>
                   ) : (
-                    <p className="text-sm text-amber-800/95">
-                      {availability?.message?.trim() ?? 'All collection times are full or unavailable. Please try again later.'}
-                    </p>
-                  )}
-                  {errors.collectionTime && (
-                    <p id="collectionTime-error" className="mt-1 text-sm text-rose-700/90" role="alert">
-                      {errors.collectionTime}
+                    <p className="mt-1 text-sm text-stone-700">
+                      Table number: <span className="font-semibold">{setupTableNumber}</span>
                     </p>
                   )}
                 </div>
@@ -588,10 +670,63 @@ export default function CheckoutPage() {
                   <span>Fees (card processing, service)</span>
                   <span className="tabular-nums">GBP {feeAmount.toFixed(2)}</span>
                 </div>
+                <div className="rounded-lg border border-stone-200/80 bg-white/90 p-3">
+                  <label htmlFor="discountCode" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-600">
+                    Discount code
+                  </label>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <input
+                      id="discountCode"
+                      name="discountCode"
+                      value={discountCodeInput}
+                      onChange={(e) => {
+                        setDiscountCodeInput(e.target.value);
+                        if (appliedDiscount) setAppliedDiscount(null);
+                        if (discountMessage) {
+                          setDiscountMessage('');
+                          setDiscountMessageType(null);
+                        }
+                      }}
+                      className={`${inputClass} py-2 text-sm`}
+                      placeholder="Enter code"
+                    />
+                    <button
+                      type="button"
+                      onClick={applyDiscountCode}
+                      disabled={discountApplyLoading}
+                      className={`${secondaryButtonClass} min-h-[42px] px-4 py-2 text-sm font-semibold ${
+                        discountApplyLoading ? 'cursor-wait opacity-70' : ''
+                      }`}
+                    >
+                      {discountApplyLoading ? 'Applying...' : 'Apply'}
+                    </button>
+                  </div>
+                  {discountMessage && (
+                    <p
+                      className={`mt-2 text-sm ${
+                        discountMessageType === 'success' ? 'text-emerald-700' : 'text-rose-700'
+                      }`}
+                      role="status"
+                    >
+                      {discountMessage}
+                    </p>
+                  )}
+                </div>
+                {appliedDiscount && (
+                  <div className="flex justify-between text-sm text-emerald-700">
+                    <span>
+                      Discount ({appliedDiscount.code}
+                      {appliedDiscount.discount_type === 'percent'
+                        ? ` ${appliedDiscount.discount_value}%`
+                        : ''})
+                    </span>
+                    <span className="tabular-nums">-GBP {discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
                 <p className="text-xs text-stone-500">No extra fee at checkout during testing. Payment is placeholder only.</p>
                 <div className="mt-1 flex items-baseline justify-between border-t-2 border-stone-200/80 pt-3 text-lg text-stone-900">
                   <span className="text-base font-bold">Total to pay (when live)</span>
-                  <span className="text-xl font-black tabular-nums tracking-tight">GBP {grandTotal.toFixed(2)}</span>
+                  <span className="text-xl font-black tabular-nums tracking-tight">GBP {totalAfterDiscount.toFixed(2)}</span>
                 </div>
               </div>
 

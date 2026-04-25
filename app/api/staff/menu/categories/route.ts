@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { authorizeStaffMenuRequest, getStaffMenuSupabase } from '../_lib';
+import { getStaffMenuSupabase } from '../_lib';
+import { requireOwnerRequest } from '@/lib/staffAuth';
 
 type CreateCategoryBody = {
   id?: string;
@@ -14,8 +15,8 @@ const slugify = (value: string) =>
     .replace(/^-+|-+$/g, '');
 
 export async function POST(request: Request) {
-  const unauthorized = await authorizeStaffMenuRequest(request);
-  if (unauthorized) return unauthorized;
+  const ownerAuth = await requireOwnerRequest(request);
+  if (!ownerAuth.ok) return ownerAuth.response;
 
   try {
     const body = (await request.json()) as CreateCategoryBody;

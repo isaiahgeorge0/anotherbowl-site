@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import {
-  authorizeStaffMenuRequest,
   getStaffMenuSupabase,
   isMissingColumnError,
   logStaffMenuApiError,
 } from '../../_lib';
+import {
+  authenticateStaffRequest,
+  unauthorizedOwnerResponse,
+  unauthorizedStaffResponse,
+} from '@/lib/staffAuth';
 
 type UpdateProductBody = {
   name?: string;
@@ -18,12 +22,18 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const unauthorized = await authorizeStaffMenuRequest(request);
-  if (unauthorized) return unauthorized;
+  const auth = await authenticateStaffRequest(request);
+  if (!auth.ok) return unauthorizedStaffResponse();
 
   try {
     const { id } = await context.params;
     const body = (await request.json()) as UpdateProductBody;
+    const requestedKeys = Object.keys(body);
+    const modifiesOnlyAvailability =
+      requestedKeys.length > 0 && requestedKeys.every((key) => key === 'is_active');
+    if (!modifiesOnlyAvailability && auth.role !== 'owner') {
+      return unauthorizedOwnerResponse();
+    }
     const updates: Record<string, string | number | boolean> = {};
 
     if (typeof body.name !== 'undefined') {

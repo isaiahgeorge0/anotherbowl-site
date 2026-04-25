@@ -130,6 +130,11 @@ const availabilityBadge = (available: boolean) => (
 );
 
 export default function OrderPage() {
+  const [setupParams, setSetupParams] = useState<{
+    type: string;
+    collectionTime: string;
+    tableNumber: string;
+  }>({ type: '', collectionTime: '', tableNumber: '' });
   const [menuByCategory, setMenuByCategory] = useState<Record<string, OrderMenuItem[]>>({});
   const [menuLoading, setMenuLoading] = useState(true);
   const [basket, setBasket] = useState<BasketItem[]>([]);
@@ -241,6 +246,29 @@ export default function OrderPage() {
   );
 
   const categories = useMemo(() => Object.keys(menuByCategory), [menuByCategory]);
+  const checkoutHref = useMemo(() => {
+    const query = new URLSearchParams();
+
+    if (setupParams.type === 'collection' && setupParams.collectionTime.trim()) {
+      query.set('type', 'collection');
+      query.set('collectionTime', setupParams.collectionTime.trim());
+    } else if (setupParams.type === 'table' && setupParams.tableNumber.trim()) {
+      query.set('type', 'table');
+      query.set('tableNumber', setupParams.tableNumber.trim());
+    }
+
+    const serialized = query.toString();
+    return serialized ? `/order/checkout?${serialized}` : '/order/checkout';
+  }, [setupParams]);
+
+  useEffect(() => {
+    const current = new URLSearchParams(window.location.search);
+    setSetupParams({
+      type: current.get('type') ?? '',
+      collectionTime: current.get('collectionTime') ?? '',
+      tableNumber: current.get('tableNumber') ?? '',
+    });
+  }, []);
 
   const getCategorySectionElement = useCallback(
     (category: string, preferredView: 'desktop' | 'mobile' | 'any' = 'any') => {
@@ -748,7 +776,7 @@ export default function OrderPage() {
                       </span>
                     ) : (
                       <Link
-                        href="/order/checkout"
+                        href={checkoutHref}
                         className={`block w-full text-center ${primaryButtonClass} hover:shadow-md`}
                       >
                         Continue to checkout
@@ -877,7 +905,7 @@ export default function OrderPage() {
                 </span>
               ) : (
                 <Link
-                  href="/order/checkout"
+                  href={checkoutHref}
                   onClick={closeBasketDrawer}
                   className={`mt-4 block w-full text-center ${primaryButtonClass} hover:shadow-md`}
                 >

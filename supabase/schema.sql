@@ -77,3 +77,62 @@ create table if not exists public.app_settings (
   key text primary key,
   value jsonb not null
 );
+
+-- Staff-managed discount code catalog for checkout foundation (no payment integration yet).
+create table if not exists public.discount_codes (
+  id uuid primary key default gen_random_uuid(),
+  code text unique not null,
+  description text not null default '',
+  discount_type text not null check (discount_type in ('percent', 'fixed')),
+  discount_value numeric not null,
+  is_active boolean not null default true,
+  starts_at timestamptz,
+  expires_at timestamptz,
+  max_uses integer,
+  used_count integer not null default 0,
+  minimum_order_total numeric,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.discount_codes
+add column if not exists description text not null default '';
+alter table public.discount_codes
+add column if not exists discount_type text;
+alter table public.discount_codes
+add column if not exists discount_value numeric;
+alter table public.discount_codes
+add column if not exists is_active boolean not null default true;
+alter table public.discount_codes
+add column if not exists starts_at timestamptz;
+alter table public.discount_codes
+add column if not exists expires_at timestamptz;
+alter table public.discount_codes
+add column if not exists max_uses integer;
+alter table public.discount_codes
+add column if not exists used_count integer not null default 0;
+alter table public.discount_codes
+add column if not exists minimum_order_total numeric;
+alter table public.discount_codes
+add column if not exists created_at timestamptz not null default now();
+alter table public.discount_codes
+add column if not exists updated_at timestamptz not null default now();
+
+create unique index if not exists idx_discount_codes_code on public.discount_codes(lower(code));
+create index if not exists idx_discount_codes_active on public.discount_codes(is_active);
+
+create or replace function public.set_discount_codes_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists set_discount_codes_updated_at on public.discount_codes;
+create trigger set_discount_codes_updated_at
+before update on public.discount_codes
+for each row
+execute function public.set_discount_codes_updated_at();

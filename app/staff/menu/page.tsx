@@ -8,6 +8,7 @@ import StaffLogoutButton from '@/components/StaffLogoutButton';
 import StaffNav from '@/components/StaffNav';
 import { supabaseServer } from '@/lib/supabaseServer';
 import type { StaffCategory, StaffProduct } from '@/types/menuManagement';
+import type { StaffRole } from '@/lib/staffAuth';
 
 const primaryButtonClass =
   'button-staff rounded-xl px-4 py-2 shadow-sm active:scale-[0.98]';
@@ -50,6 +51,7 @@ export default function StaffMenuPage() {
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [staffRole, setStaffRole] = useState<StaffRole>('staff');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -135,10 +137,28 @@ export default function StaffMenuPage() {
     }
   }, [getStaffAuthHeaders, isAuthenticated]);
 
+  const fetchStaffRole = useCallback(async () => {
+    try {
+      const authHeaders = await getStaffAuthHeaders();
+      const response = await fetch('/api/staff/me', {
+        cache: 'no-store',
+        headers: authHeaders,
+      });
+      if (!response.ok) return;
+      const data = (await response.json()) as { role?: StaffRole };
+      if (data.role === 'owner' || data.role === 'staff') {
+        setStaffRole(data.role);
+      }
+    } catch {
+      setStaffRole('staff');
+    }
+  }, [getStaffAuthHeaders]);
+
   useEffect(() => {
     if (!isAuthenticated) return;
+    fetchStaffRole();
     fetchMenu();
-  }, [fetchMenu, isAuthenticated]);
+  }, [fetchMenu, fetchStaffRole, isAuthenticated]);
 
   const displayGroups = useMemo(() => {
     const sorted = categories.slice().sort((a, b) => a.display_order - b.display_order);
@@ -197,6 +217,7 @@ export default function StaffMenuPage() {
   const activeProductCount = products.filter((product) => product.is_active).length;
 
   const openEditModal = (product: StaffProduct) => {
+    if (staffRole !== 'owner') return;
     setEditingProduct(product);
     setEditDraft({
       name: product.name,
@@ -213,6 +234,7 @@ export default function StaffMenuPage() {
   };
 
   const openCategoryModal = (category: StaffCategory) => {
+    if (staffRole !== 'owner') return;
     setEditingCategory(category);
     setCategoryEditDraft({
       name: category.name,
@@ -377,6 +399,12 @@ export default function StaffMenuPage() {
             <p className="text-sm mt-1">
               Product deactivation uses soft delete (`is_active = false`) to preserve order history integrity.
             </p>
+            {staffRole !== 'owner' && (
+              <p className="text-sm mt-1">
+                Your role is <span className="font-semibold">staff</span>: you can toggle availability, but only
+                owners can change product/category structure and pricing.
+              </p>
+            )}
           </div>
 
           <StaffNav />
@@ -399,8 +427,9 @@ export default function StaffMenuPage() {
             </div>
           </section>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
-            <form onSubmit={submitNewCategory} className="space-y-3 rounded-xl border border-stone-200/80 p-4">
+          {staffRole === 'owner' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
+              <form onSubmit={submitNewCategory} className="space-y-3 rounded-xl border border-stone-200/80 p-4">
               <h2 className="text-lg font-bold text-stone-900">Add category</h2>
               <div>
                 <label className={fieldLabelClass} htmlFor="new-category-name">
@@ -431,9 +460,9 @@ export default function StaffMenuPage() {
               <button type="submit" disabled={saving} className={`${primaryButtonClass} w-full sm:w-auto`}>
                 Create category
               </button>
-            </form>
+              </form>
 
-            <form onSubmit={submitNewProduct} className="space-y-3 rounded-xl border border-stone-200/80 p-4">
+              <form onSubmit={submitNewProduct} className="space-y-3 rounded-xl border border-stone-200/80 p-4">
               <h2 className="text-lg font-bold text-stone-900">Add product</h2>
               <div>
                 <label className={fieldLabelClass} htmlFor="new-product-name">
@@ -512,8 +541,9 @@ export default function StaffMenuPage() {
               <button type="submit" disabled={saving} className={`${primaryButtonClass} w-full sm:w-auto`}>
                 Create product
               </button>
-            </form>
-          </div>
+              </form>
+            </div>
+          )}
 
           {error && <p className="mb-4 text-red-600">{error}</p>}
           {loading && <p className="mb-4 text-stone-600">Loading menu catalog...</p>}
@@ -579,13 +609,15 @@ export default function StaffMenuPage() {
                       </p>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    className={`${secondaryButtonClass} w-full sm:w-auto`}
-                    onClick={() => openCategoryModal(category)}
-                  >
-                    Edit category
-                  </button>
+                  {staffRole === 'owner' && (
+                    <button
+                      type="button"
+                      className={`${secondaryButtonClass} w-full sm:w-auto`}
+                      onClick={() => openCategoryModal(category)}
+                    >
+                      Edit category
+                    </button>
+                  )}
                 </div>
 
                 {categoryProducts.length === 0 ? (
@@ -625,13 +657,15 @@ export default function StaffMenuPage() {
                                 />
                                 {product.is_active ? 'Available' : 'Hidden'}
                               </label>
-                              <button
-                                type="button"
-                                className={`${secondaryButtonClass} w-full sm:w-auto`}
-                                onClick={() => openEditModal(product)}
-                              >
-                                Edit details
-                              </button>
+                              {staffRole === 'owner' && (
+                                <button
+                                  type="button"
+                                  className={`${secondaryButtonClass} w-full sm:w-auto`}
+                                  onClick={() => openEditModal(product)}
+                                >
+                                  Edit details
+                                </button>
+                              )}
                             </div>
                           </div>
                         </article>
@@ -651,7 +685,7 @@ export default function StaffMenuPage() {
       </main>
       <Footer />
 
-      {editingProduct && (
+      {staffRole === 'owner' && editingProduct && (
         <div
           className={modalOverlayClass}
           onClick={(event) => {
@@ -758,7 +792,7 @@ export default function StaffMenuPage() {
         </div>
       )}
 
-      {editingCategory && (
+      {staffRole === 'owner' && editingCategory && (
         <div
           className={modalOverlayClass}
           onClick={(event) => {

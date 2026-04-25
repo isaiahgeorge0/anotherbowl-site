@@ -8,6 +8,7 @@ import Footer from '@/components/Footer';
 import StaffLogoutButton from '@/components/StaffLogoutButton';
 import StaffNav from '@/components/StaffNav';
 import { supabaseServer } from '@/lib/supabaseServer';
+import type { StaffRole } from '@/lib/staffAuth';
 
 const cardClass =
   'rounded-2xl border border-stone-200/70 bg-light/90 p-5 shadow-[0_6px_28px_rgba(28,26,24,0.06)] sm:p-6';
@@ -35,12 +36,19 @@ const staffActions = [
     href: '/staff/menu',
     cta: 'Open Menu',
   },
+  {
+    title: 'Discounts',
+    description: 'Create and manage discount codes for checkout promotions.',
+    href: '/staff/discounts',
+    cta: 'Open Discounts',
+  },
 ] as const;
 
 export default function StaffHomePage() {
   const router = useRouter();
   const [authLoading, setAuthLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [staffRole, setStaffRole] = useState<StaffRole>('staff');
 
   useEffect(() => {
     const checkSession = async () => {
@@ -49,6 +57,21 @@ export default function StaffHomePage() {
         setIsAuthenticated(false);
       } else {
         setIsAuthenticated(true);
+        const token = data.session.access_token;
+        try {
+          const meResponse = await fetch('/api/staff/me', {
+            cache: 'no-store',
+            headers: { authorization: `Bearer ${token}` },
+          });
+          if (meResponse.ok) {
+            const mePayload = (await meResponse.json()) as { role?: StaffRole };
+            if (mePayload.role === 'owner' || mePayload.role === 'staff') {
+              setStaffRole(mePayload.role);
+            }
+          }
+        } catch {
+          setStaffRole('staff');
+        }
       }
       setAuthLoading(false);
     };
@@ -99,6 +122,10 @@ export default function StaffHomePage() {
     );
   }
 
+  const visibleActions = staffActions.filter((action) =>
+    action.href === '/staff/discounts' ? staffRole === 'owner' : true
+  );
+
   return (
     <div className="min-h-screen scroll-smooth bg-gradient-to-br from-light via-white to-light">
       <NavBar />
@@ -114,8 +141,8 @@ export default function StaffHomePage() {
 
           <StaffNav />
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            {staffActions.map((action) => (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {visibleActions.map((action) => (
               <section key={action.href} className="rounded-xl border border-stone-200/80 bg-mint/20 p-4">
                 <h2 className="text-lg font-bold text-stone-900">{action.title}</h2>
                 <p className="mt-1 text-sm text-stone-600">{action.description}</p>
